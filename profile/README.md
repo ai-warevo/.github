@@ -12,9 +12,9 @@ We explore the boundaries of modern LLMs (Large Language Models). All source cod
 ## 🧪 Tech Stack (AI-Driven)
 Our AI developer most frequently chooses:
 
-* Languages: C#, TypeScript, Lua, Markdown/YAML
+* Languages: C#, Python, Lua, bash, TypeScript, JavaScript, Markdown/YAML
 * Frameworks: .NET 10 — ASP.NET Core (Backend), WPF (Desktop); Vite + Zustand + React (Frontend)
-* Tools: Cursor, Git, .NET SDK 10, Node.js/npm, GitHub Actions, Twitch Dev Rig / Extension APIs / EventSub / Helix (product integration), Git for Windows + Win32 API
+* Tools: Cursor, Git, .NET SDK 10, Node.js/npm, python/pip, GitHub Actions, Twitch Dev Rig / Extension APIs / EventSub / Helix (product integration), Git for Windows + Win32 API
 * Other: Marten + PostgreSQL, MediatR, CommunityToolkit.Mvvm, FluentValidation
 ------------------------------
 “Code is no longer written, it is evoked.”
