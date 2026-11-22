@@ -62,8 +62,9 @@ runs:
         QUARTER_WIDTH=$(( WIDTH / 4 ))
         THREE_QUARTERS=$(( WIDTH * 3 / 4 ))
 
-        OUTPUT_PATH="${GITHUB_WORKSPACE}/${FILENAME}"
-        echo "DEBUG: OUTPUT_PATH=$OUTPUT_PATH"
+        # Use relative path — GitHub Actions handles persistence across container/host boundary
+        OUTPUT_PATH="${FILENAME}"
+        echo "DEBUG: OUTPUT_PATH=$OUTPUT_PATH (relative to workspace)"
         echo "DEBUG: GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
         mkdir -p "$(dirname "$OUTPUT_PATH")"
 
