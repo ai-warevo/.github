@@ -14,6 +14,15 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-11-22
+
+### Changed
+
+- Merge pull request #50 from ai-warevo/loktionov129-patch-6
+- Update README.md
+- Merge branch 'main' of github.com:ai-warevo/.github
+- clang-tidy
+
 ## [1.8.1] - 2026-11-22
 
 ### Changed
