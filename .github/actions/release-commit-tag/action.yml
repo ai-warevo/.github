@@ -36,5 +36,22 @@ runs:
         version="${RELEASE_VERSION#v}"
         git commit -m "chore(release): version $version"
         git tag -a "$RELEASE_VERSION" -m "Release $RELEASE_VERSION"
+        
+        echo "Pushing branch $RELEASE_BRANCH..."
         git push origin "HEAD:$RELEASE_BRANCH"
-        git push origin "$RELEASE_VERSION"
+        
+        echo "Pushing tag $RELEASE_VERSION..."
+        # Retry tag push with exponential backoff (GitHub may have rate limits or temporary issues)
+        for attempt in 1 2 3; do
+          if git push origin "$RELEASE_VERSION"; then
+            echo "Tag pushed successfully"
+            exit 0
+          fi
+          if [ $attempt -lt 3 ]; then
+            echo "Tag push failed, retrying in $((2 ** attempt))s..."
+            sleep $((2 ** attempt))
+          fi
+        done
+        
+        echo "::error::Failed to push tag after 3 attempts"
+        exit 1
