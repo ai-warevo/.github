@@ -1,0 +1,202 @@
+# reusable-coverage-badge — coverage generation + badge creation + deployment
+#
+# Reusable workflow for running coverage tests, generating badge, and deploying to GitHub Pages.
+# Can be used standalone or as part of a larger weekly-deep workflow.
+#
+# Parameters:
+#   source_dir          — source directory (default: .)
+#   build_dir           — build directory (default: build)
+#   container_image     — CI container image (default: ghcr.io/ai-warevo/ci-cpp23)
+#   toolchain           — toolchain to use (default: gcc15)
+#   cmake_extra_args    — CMake arguments (REQUIRED: must include -D*_BUILD_TESTS=ON -D*_ENABLE_COVERAGE=ON)
+#   gcovr_source_filter — gcovr --filter patterns (default: include/ src/)
+#   gcovr_exclude       — gcovr --exclude pattern (default: _deps/*)
+#   badge_text_left     — badge left text (default: coverage)
+#   badge_branch        — branch to deploy badge to (default: badges)
+#   badge_target_folder — target folder in badge branch (default: .)
+#   html_branch         — branch to deploy coverage HTML to (default: gh-pages)
+#   html_target_folder  — target folder in HTML branch (default: .)
+#   needs_jobs          — comma-separated list of jobs this depends on (optional, e.g., "sanitizer-asan,sanitizer-tsan")
+#   setup_command       — optional Bash command to prepare the source tree after checkout
+
+name: reusable-coverage-badge
+
+on:
+  workflow_call:
+    inputs:
+      source_dir:
+        description: 'Source directory'
+        type: string
+        default: '.'
+      build_dir:
+        description: 'Build directory'
+        type: string
+        default: 'build'
+      container_image:
+        description: 'CI container image'
+        type: string
+        default: 'ghcr.io/ai-warevo/ci-cpp23'
+      toolchain:
+        description: 'Toolchain to use (gcc15, clang19, etc.)'
+        type: string
+        default: 'gcc15'
+      cmake_extra_args:
+        description: 'CMake arguments (must include -D*_BUILD_TESTS=ON -D*_ENABLE_COVERAGE=ON)'
+        type: string
+        required: true
+      gcovr_source_filter:
+        description: 'gcovr --filter patterns (space-separated)'
+        type: string
+        default: 'include/ src/'
+      gcovr_exclude:
+        description: 'gcovr --exclude pattern'
+        type: string
+        default: '_deps/*'
+      badge_text_left:
+        description: 'Badge left text'
+        type: string
+        default: 'coverage'
+      badge_branch:
+        description: 'Branch to deploy badge to'
+        type: string
+        default: 'badges'
+      badge_target_folder:
+        description: 'Target folder in badge branch'
+        type: string
+        default: '.'
+      html_branch:
+        description: 'Branch to deploy coverage HTML to'
+        type: string
+        default: 'gh-pages'
+      html_target_folder:
+        description: 'Target folder in HTML branch'
+        type: string
+        default: '.'
+      setup_command:
+        description: 'Optional Bash command to prepare the source tree after checkout'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.container_image }}
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Run Setup Command
+        if: inputs.setup_command != ''
+        run: ${{ inputs.setup_command }}
+
+      - name: Install toolchain
+        id: tc
+        uses: ai-warevo/.github/.github/actions/setup-toolchain@main
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          container_mode: true
+
+      - name: Configure & Build
+        uses: ai-warevo/.github/.github/actions/cmake-build@main
+        with:
+          source_dir: ${{ inputs.source_dir }}
+          build_dir: ${{ inputs.build_dir }}
+          build_type: Debug
+          extra_args: >-
+            ${{ steps.tc.outputs.cmake_args }}
+            ${{ inputs.cmake_extra_args }}
+
+      - name: Run Tests
+        uses: ai-warevo/.github/.github/actions/ctest-run@main
+        with:
+          source_dir: ${{ inputs.source_dir }}
+          build_dir: ${{ inputs.build_dir }}
+          config: Debug
+
+      - name: Generate Coverage
+        uses: ai-warevo/.github/.github/actions/gcovr-report@main
+        with:
+          source_dir: ${{ inputs.source_dir }}
+          build_dir: ${{ inputs.build_dir }}
+          source_filter: ${{ inputs.gcovr_source_filter }}
+          exclude: ${{ inputs.gcovr_exclude }}
+          output_dir: htmlcov
+
+      - name: Parse Coverage Metrics
+        id: coverage_parser
+        uses: ai-warevo/.github/.github/actions/coverage-parser@main
+        with:
+          xml_path: coverage.xml
+
+      - name: Generate Coverage Badge
+        id: badge_generator
+        uses: ai-warevo/.github/.github/actions/badge@main
+        with:
+          width: '99'
+          height: '20'
+          text_left: ${{ inputs.badge_text_left }}
+          text_right: '${{ steps.coverage_parser.outputs.percent }}%'
+          bg_color_right: '${{ steps.coverage_parser.outputs.color }}'
+          filename: 'coverage.svg'
+
+      - name: Upload Badge
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: coverage-badge
+          path: coverage.svg
+          retention-days: 1
+
+      - name: Upload Coverage HTML
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: coverage-html
+          path: htmlcov/
+          retention-days: 1
+
+  deploy:
+    name: Deploy Badges & HTML
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Download Badge
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: coverage-badge
+          path: .
+
+      - name: Download Coverage HTML
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: coverage-html
+          path: htmlcov/
+
+      - name: Deploy Badge
+        uses: ai-warevo/.github/.github/actions/badge-deploy@main
+        with:
+          badge_path: coverage.svg
+          branch: ${{ inputs.badge_branch }}
+          target_folder: ${{ inputs.badge_target_folder }}
+
+      - name: Deploy Coverage HTML
+        uses: ai-warevo/.github/.github/actions/coverage-html-deploy@main
+        with:
+          folder: htmlcov
+          branch: ${{ inputs.html_branch }}
+          target_folder: ${{ inputs.html_target_folder }}
