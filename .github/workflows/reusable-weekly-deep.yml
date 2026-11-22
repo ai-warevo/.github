@@ -141,7 +141,7 @@ jobs:
           width: '99'
           height: '20'
           text_left: 'coverage'
-          text_right: '${{ steps.coverage_parser.outputs.percent }}'
+          text_right: '${{ steps.coverage_parser.outputs.percent }}%'
           bg_color_right: '${{ steps.coverage_parser.outputs.color }}'
           filename: 'coverage.svg'
 
