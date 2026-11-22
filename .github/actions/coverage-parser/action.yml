@@ -50,13 +50,13 @@ runs:
 
         # Try XML first (preferred — more accurate)
         if [ -f "$XML_PATH" ]; then
-          PERCENTAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 | awk '{printf "%d", $1 * 100}')
+          PERCENTAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | awk 'NR==1 {printf "%d", $1 * 100; exit}' || echo "0")
           echo "Parsed from coverage.xml: ${PERCENTAGE}%"
         fi
 
         # Fallback to lcov
         if [ "$PERCENTAGE" = "0" ] && [ -f "$LCOV_PATH" ]; then
-          PERCENTAGE=$(grep '^DA:' "$LCOV_PATH" | awk -F'[:,]' '{total++; if($3>0) covered++} END {if(total>0) printf "%d", (covered/total)*100; else print 0}')
+          PERCENTAGE=$(grep '^DA:' "$LCOV_PATH" | awk -F'[:,]' '{total++; if($3>0) covered++} END {if(total>0) printf "%d", (covered/total)*100; else print 0}' || echo "0")
           echo "Parsed from coverage.lcov: ${PERCENTAGE}%"
         fi
 
