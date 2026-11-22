@@ -120,9 +120,10 @@ runs:
         mkdir -p "$OUTPUT_DIR"
 
         echo "=== Running gcovr ==="
-        echo "gcovr -r $BUILD_ROOT --gcov-executable $GCOV_CMD $FILTER_ARGS $EXCLUDE_ARGS --xml $XML_PATH --html-details $OUTPUT_DIR/index.html"
+        echo "gcovr -r $SOURCE_ABS --object-directory $BUILD_ROOT --gcov-executable $GCOV_CMD $FILTER_ARGS $EXCLUDE_ARGS --xml $XML_PATH --html-details $OUTPUT_DIR/index.html"
 
-        gcovr -r "$BUILD_ROOT" \
+        gcovr -r "$SOURCE_ABS" \
+          --object-directory "$BUILD_ROOT" \
           --gcov-executable "$GCOV_CMD" \
           --gcov-ignore-errors=no_working_dir_found \
           $FILTER_ARGS \
