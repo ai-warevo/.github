@@ -14,6 +14,16 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-11-22
+
+### Changed
+
+- clarify gcovr_source_filter as rarely needed with proper root
+
+### Fixed
+
+- use SOURCE_ABS as root instead of BUILD_ROOT
+
 ## [1.10.0] - 2026-11-22
 
 ### Added
