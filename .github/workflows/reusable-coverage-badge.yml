@@ -45,9 +45,9 @@ on:
         type: string
         required: true
       gcovr_source_filter:
-        description: 'gcovr --filter patterns (space-separated)'
+        description: 'gcovr --filter patterns (space-separated, rarely needed)'
         type: string
-        default: 'include/ src/'
+        default: ''
       gcovr_exclude:
         description: 'gcovr --exclude pattern'
         type: string
