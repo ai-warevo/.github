@@ -62,8 +62,9 @@ runs:
         QUARTER_WIDTH=$(( WIDTH / 4 ))
         THREE_QUARTERS=$(( WIDTH * 3 / 4 ))
 
-        OUTPUT_PATH="$(pwd)/${FILENAME}"
+        OUTPUT_PATH="${GITHUB_WORKSPACE}/${FILENAME}"
         echo "DEBUG: OUTPUT_PATH=$OUTPUT_PATH"
+        echo "DEBUG: GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
         mkdir -p "$(dirname "$OUTPUT_PATH")"
 
         cat <<EOF | sed 's/^        //' > "$OUTPUT_PATH"
