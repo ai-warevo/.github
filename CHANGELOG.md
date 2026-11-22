@@ -14,6 +14,28 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-22
+
+### Added
+
+- add reusable coverage-badge workflow
+
+### Changed
+
+- Merge branch 'main' of github.com:ai-warevo/.github
+- Merge pull request #51 from ai-warevo/loktionov129-patch-7
+- version 1.9.0
+- Update README.md
+- add container parametrization guide
+- Merge branch 'main' of github.com:ai-warevo/.github
+
+### Fixed
+
+- add retry logic for tag push with exponential backoff
+- use relative path instead of GITHUB_WORKSPACE for portability
+- use GITHUB_WORKSPACE instead of pwd for correct file path in containers
+- add debug output to diagnose badge generation issue
+
 ## [1.9.0] - 2026-11-22
 
 ### Added
