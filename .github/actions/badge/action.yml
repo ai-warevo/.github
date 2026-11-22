@@ -55,11 +55,15 @@ runs:
         TEXT_COLOR: ${{ inputs.text_color }}
         FILENAME: ${{ inputs.filename }}
       run: |
+        set -euo pipefail
+        echo "DEBUG: Generating badge"
+        echo "DEBUG: WIDTH=$WIDTH HEIGHT=$HEIGHT TEXT_RIGHT=$TEXT_RIGHT FILENAME=$FILENAME"
         HALF_WIDTH=$(( WIDTH / 2 ))
         QUARTER_WIDTH=$(( WIDTH / 4 ))
         THREE_QUARTERS=$(( WIDTH * 3 / 4 ))
 
         OUTPUT_PATH="$(pwd)/${FILENAME}"
+        echo "DEBUG: OUTPUT_PATH=$OUTPUT_PATH"
         mkdir -p "$(dirname "$OUTPUT_PATH")"
 
         cat <<EOF | sed 's/^        //' > "$OUTPUT_PATH"
@@ -84,4 +88,6 @@ runs:
             </g>
         </svg>
         EOF
+        echo "DEBUG: File created: $OUTPUT_PATH"
+        [ -f "$OUTPUT_PATH" ] && echo "DEBUG: File exists, size=$(wc -c < "$OUTPUT_PATH")" || echo "DEBUG: File DOES NOT EXIST!"
         echo "filepath=${OUTPUT_PATH}" >> $GITHUB_OUTPUT
