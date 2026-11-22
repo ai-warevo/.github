@@ -28,6 +28,14 @@ on:
         description: 'Directory where release artifacts are downloaded'
         type: string
         default: artifacts
+      what-included:
+        description: 'What''s Included section for release notes'
+        type: string
+        default: ''
+      quick-start:
+        description: 'Quick Start section for release notes'
+        type: string
+        default: ''
     outputs:
       release_version:
         description: 'Full release version with v prefix'
@@ -136,6 +144,8 @@ jobs:
         uses: ai-warevo/.github/.github/actions/changelog-release@main
         with:
           tag: ${{ needs.version-derive.outputs.release_version }}
+          what-included: ${{ inputs.what-included }}
+          quick-start: ${{ inputs.quick-start }}
 
       - name: Create Release with artifacts
         if: inputs.artifact_name != ''
