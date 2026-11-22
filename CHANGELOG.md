@@ -14,6 +14,13 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.8.4] - 2026-11-22
+
+### Changed
+
+- Merge branch 'main' of github.com:ai-warevo/.github
+- ci <3
+
 ## [1.8.3] - 2026-11-22
 
 ### Changed
