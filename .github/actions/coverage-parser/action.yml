@@ -26,7 +26,7 @@ inputs:
 
 outputs:
   percent:
-    description: 'Coverage percentage (integer, 0-100)'
+    description: 'Coverage percentage with % symbol (e.g., "26%")'
     value: ${{ steps.parse.outputs.percent }}
   color:
     description: 'Badge color (HEX)'
@@ -74,6 +74,6 @@ runs:
           GITHUB_COLOR="red"
         fi
 
-        echo "percent=${PERCENTAGE}" >> "$GITHUB_OUTPUT"
+        echo "percent=${PERCENTAGE}%" >> "$GITHUB_OUTPUT"
         echo "color=${COLOR}" >> "$GITHUB_OUTPUT"
         echo "github_color=${GITHUB_COLOR}" >> "$GITHUB_OUTPUT"
