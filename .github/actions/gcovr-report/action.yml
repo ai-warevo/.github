@@ -33,7 +33,7 @@ inputs:
     required: false
     default: ''
   exclude:
-    description: '--exclude pattern (may be specified multiple times, comma-separated)'
+    description: '--exclude patterns (space-separated, e.g. "_deps/* examples/*"; globbed patterns okay, shell expansion disabled)'
     required: false
     default: '_deps/*'
   output_dir:
@@ -102,12 +102,13 @@ runs:
         # Read the gcov executable determined in previous step
         GCOV_CMD=$(cat "$GCOV_EXECUTABLE")
 
-        # Collect exclude args
+        # Collect exclude args — use set -f to disable glob expansion
+        set -f  # disable filename expansion (globbing)
         EXCLUDE_ARGS=""
-        for pattern in $(echo "$EXCLUDE" | tr ',' ' '); do
-          pattern=$(echo "$pattern" | xargs)
-          [ -n "$pattern" ] && EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $pattern"
+        for pattern in $EXCLUDE; do
+          [ -n "$pattern" ] && EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude '$pattern'"
         done
+        set +f  # re-enable globbing
 
         # Collect filter args — convert relative filter prefixes to absolute paths
         FILTER_ARGS=""
@@ -122,17 +123,17 @@ runs:
         echo "=== Running gcovr ==="
         echo "gcovr -r $SOURCE_ABS --object-directory $BUILD_ROOT --gcov-executable $GCOV_CMD $FILTER_ARGS $EXCLUDE_ARGS --xml $XML_PATH --html-details $OUTPUT_DIR/index.html"
 
-        gcovr -r "$SOURCE_ABS" \
-          --object-directory "$BUILD_ROOT" \
-          --gcov-executable "$GCOV_CMD" \
+        eval "gcovr -r '$SOURCE_ABS' \
+          --object-directory '$BUILD_ROOT' \
+          --gcov-executable '$GCOV_CMD' \
           --gcov-ignore-errors=no_working_dir_found \
           $FILTER_ARGS \
           $EXCLUDE_ARGS \
           --exclude-unreachable-branches \
           --exclude-throw-branches \
           --print-summary \
-          --xml "$XML_PATH" \
-          --html-details "$OUTPUT_DIR/index.html" 2>&1 || true
+          --xml '$XML_PATH' \
+          --html-details '$OUTPUT_DIR/index.html'" 2>&1 || true
 
         # Extract percentage
         PERCENTAGE=0
