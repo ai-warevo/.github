@@ -246,12 +246,11 @@ runs:
         echo "=== Coverage Extraction ==="
         LINE_RATE=0.0
         if [ -f "$XML_PATH" ]; then
-          LINE_RATE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 || echo "0.0")
+          LINE_RATE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1) || LINE_RATE="0.0"
         fi
-        : "${LINE_RATE:=0.0}"
-
+        
         # Display as percentage for readability
-        DISPLAY_PCT=$(echo "$LINE_RATE" | awk '{printf "%d", $1 * 100}')
+        DISPLAY_PCT=$(awk "BEGIN {printf \"%d\", $LINE_RATE * 100}")
         echo "Extracted line-rate: ${LINE_RATE} (display: ${DISPLAY_PCT}%)"
         echo ""
         echo "=== Final Output ==="
