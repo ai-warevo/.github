@@ -66,6 +66,8 @@ Ready-made templates for projects: [templates/](templates/)
 ### 📋 CI/CD
 GitHub Actions templates for CI/CD: [.github/README.md](.github/README.md)
 
+**Container Parametrization**: [CI_CONTAINER_PARAMETRIZATION.md](CI_CONTAINER_PARAMETRIZATION.md)
+
 ## How to Use
 
 ### For AI Agents
