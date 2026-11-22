@@ -52,9 +52,9 @@ outputs:
   html_dir:
     description: 'Path to generated HTML report directory'
     value: ${{ steps.gcovr.outputs.html_dir }}
-  percent:
-    description: 'Line coverage percentage'
-    value: ${{ steps.gcovr.outputs.percent }}
+  line_rate:
+    description: 'Line coverage rate (decimal 0.0-1.0)'
+    value: ${{ steps.gcovr.outputs.line_rate }}
 
 runs:
   using: 'composite'
@@ -242,18 +242,20 @@ runs:
         fi
         echo ""
 
-        # Extract percentage
-        echo "=== Coverage Percentage ==="
-        PERCENTAGE=0
+        # Extract line-rate (decimal 0.0-1.0; coverage-parser converts to percentage)
+        echo "=== Coverage Extraction ==="
+        LINE_RATE=0.0
         if [ -f "$XML_PATH" ]; then
-          PERCENTAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 | awk '{printf "%d", $1 * 100}' || echo "0")
+          LINE_RATE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 || echo "0.0")
         fi
-        : "${PERCENTAGE:=0}"
+        : "${LINE_RATE:=0.0}"
 
-        echo "Extracted coverage: ${PERCENTAGE}%"
+        # Display as percentage for readability
+        DISPLAY_PCT=$(echo "$LINE_RATE" | awk '{printf "%d", $1 * 100}')
+        echo "Extracted line-rate: ${LINE_RATE} (display: ${DISPLAY_PCT}%)"
         echo ""
         echo "=== Final Output ==="
         echo "xml_path=${XML_PATH}" >> "$GITHUB_OUTPUT"
         echo "html_dir=${OUTPUT_DIR}" >> "$GITHUB_OUTPUT"
-        echo "percent=${PERCENTAGE}" >> "$GITHUB_OUTPUT"
-        echo "GCOVR completed. Coverage: ${PERCENTAGE}%"
+        echo "line_rate=${LINE_RATE}" >> "$GITHUB_OUTPUT"
+        echo "GCOVR completed. Coverage line-rate: ${LINE_RATE}"
