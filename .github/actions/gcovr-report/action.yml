@@ -33,7 +33,7 @@ inputs:
     required: false
     default: ''
   exclude:
-    description: '--exclude pattern (may be specified multiple times, comma-separated)'
+    description: '--exclude patterns (space-separated, e.g. "_deps/* examples/*"; globbed patterns okay, shell expansion disabled)'
     required: false
     default: '_deps/*'
   output_dir:
@@ -66,20 +66,46 @@ runs:
         GCOV_EXECUTABLE: /tmp/gcov-executable
       run: |
         set -euo pipefail
+        
+        echo "=== Detecting Coverage Tools ==="
         GCC_VER=$(gcc -dumpversion | cut -d. -f1)
-        echo "Detected GCC version: $GCC_VER"
+        echo "GCC version: $GCC_VER"
+        
+        # Check available gcov versions
+        echo ""
+        echo "Available gcov executables:"
+        for gcov_candidate in gcov gcov-{10..20}; do
+          if command -v "$gcov_candidate" &>/dev/null; then
+            GCOV_LOCATION=$(which "$gcov_candidate")
+            GCOV_VERSION=$("$gcov_candidate" --version | head -1)
+            echo "  ✓ $gcov_candidate: $GCOV_LOCATION ($GCOV_VERSION)"
+          fi
+        done
+        echo ""
+        
+        # Select gcov version
         if command -v gcov-${GCC_VER} &>/dev/null; then
           GCOV_PATH=$(which gcov-${GCC_VER})
-          echo "Found gcov-${GCC_VER} at $GCOV_PATH"
+          echo "Selected: gcov-${GCC_VER} at $GCOV_PATH"
           echo "$GCOV_PATH" > "$GCOV_EXECUTABLE"
         else
-          echo "WARNING: gcov-${GCC_VER} not found; using default gcov"
+          echo "WARNING: gcov-${GCC_VER} not found; falling back to default gcov"
+          GCOV_PATH=$(which gcov)
+          echo "Selected: gcov at $GCOV_PATH"
           echo "gcov" > "$GCOV_EXECUTABLE"
         fi
-        echo "=== Compiler & Coverage Tool Versions ==="
+        
+        echo ""
+        echo "=== Tool Versions ==="
+        echo "GCC:"
         gcc --version | head -1
-        gcov --version | head -1
+        echo ""
+        echo "GCOV (selected):"
+        $(cat "$GCOV_EXECUTABLE") --version | head -1
+        echo ""
+        echo "GCOVR:"
         gcovr --version
+        echo ""
 
     # ── Generate coverage reports ──
     - name: Generate coverage reports
@@ -99,49 +125,135 @@ runs:
         BUILD_ROOT="$GITHUB_WORKSPACE/${SOURCE_DIR}/${BUILD_DIR}"
         SOURCE_ABS="$GITHUB_WORKSPACE/${SOURCE_DIR}"
 
+        echo "=== GCOVR Setup ==="
+        echo "SOURCE_DIR: $SOURCE_DIR"
+        echo "BUILD_DIR: $BUILD_DIR"
+        echo "SOURCE_ABS: $SOURCE_ABS"
+        echo "BUILD_ROOT: $BUILD_ROOT"
+        echo ""
+
+        # Verify directories exist
+        echo "=== Directory Verification ==="
+        [ -d "$SOURCE_ABS" ] && echo "✓ Source dir exists: $SOURCE_ABS" || echo "✗ Source dir NOT found: $SOURCE_ABS"
+        [ -d "$BUILD_ROOT" ] && echo "✓ Build dir exists: $BUILD_ROOT" || echo "✗ Build dir NOT found: $BUILD_ROOT"
+        
+        # List .gcda files
+        echo "=== .gcda Files Found ==="
+        find "$BUILD_ROOT" -name "*.gcda" 2>/dev/null | head -20 || echo "No .gcda files found in $BUILD_ROOT"
+        GCDA_COUNT=$(find "$BUILD_ROOT" -name "*.gcda" 2>/dev/null | wc -l)
+        echo "Total .gcda files: $GCDA_COUNT"
+        echo ""
+
         # Read the gcov executable determined in previous step
         GCOV_CMD=$(cat "$GCOV_EXECUTABLE")
+        echo "GCOV_CMD: $GCOV_CMD"
+        echo ""
 
-        # Collect exclude args
+        # Collect exclude args — use set -f to disable glob expansion
+        echo "=== Processing Exclude Patterns ==="
+        echo "EXCLUDE input: '$EXCLUDE'"
+        set -f  # disable filename expansion (globbing)
         EXCLUDE_ARGS=""
-        for pattern in $(echo "$EXCLUDE" | tr ',' ' '); do
-          pattern=$(echo "$pattern" | xargs)
-          [ -n "$pattern" ] && EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude $pattern"
+        EXCLUDE_COUNT=0
+        for pattern in $EXCLUDE; do
+          [ -n "$pattern" ] && {
+            EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude '$pattern'"
+            EXCLUDE_COUNT=$((EXCLUDE_COUNT + 1))
+            echo "  [$EXCLUDE_COUNT] Added exclude: '$pattern'"
+          }
         done
+        set +f  # re-enable globbing
+        echo "Total exclude patterns: $EXCLUDE_COUNT"
+        echo ""
 
         # Collect filter args — convert relative filter prefixes to absolute paths
+        echo "=== Processing Filter Patterns ==="
+        echo "FILTER input: '$FILTER'"
         FILTER_ARGS=""
+        FILTER_COUNT=0
         if [ -n "${FILTER:-}" ]; then
           for pattern in $FILTER; do
             FILTER_ARGS="$FILTER_ARGS --filter ${SOURCE_ABS}/${pattern}"
+            FILTER_COUNT=$((FILTER_COUNT + 1))
+            echo "  [$FILTER_COUNT] Added filter: ${SOURCE_ABS}/${pattern}"
           done
         fi
+        echo "Total filter patterns: $FILTER_COUNT"
+        echo ""
 
         mkdir -p "$OUTPUT_DIR"
 
         echo "=== Running gcovr ==="
-        echo "gcovr -r $SOURCE_ABS --object-directory $BUILD_ROOT --gcov-executable $GCOV_CMD $FILTER_ARGS $EXCLUDE_ARGS --xml $XML_PATH --html-details $OUTPUT_DIR/index.html"
+        echo "Command:"
+        echo "  gcovr -r '$SOURCE_ABS' '$BUILD_ROOT' \\"
+        echo "    --gcov-executable '$GCOV_CMD' \\"
+        echo "    --gcov-ignore-errors=no_working_dir_found \\"
+        [ -n "$FILTER_ARGS" ] && echo "    $FILTER_ARGS \\" || true
+        [ -n "$EXCLUDE_ARGS" ] && echo "    $EXCLUDE_ARGS \\" || true
+        echo "    --exclude-unreachable-branches \\"
+        echo "    --exclude-throw-branches \\"
+        echo "    --print-summary \\"
+        echo "    --xml '$XML_PATH' \\"
+        echo "    --html-details '$OUTPUT_DIR/index.html'"
+        echo ""
 
-        gcovr -r "$SOURCE_ABS" \
-          --object-directory "$BUILD_ROOT" \
-          --gcov-executable "$GCOV_CMD" \
+        GCOVR_OUTPUT=$(eval "gcovr -r '$SOURCE_ABS' '$BUILD_ROOT' \
+          --gcov-executable '$GCOV_CMD' \
           --gcov-ignore-errors=no_working_dir_found \
           $FILTER_ARGS \
           $EXCLUDE_ARGS \
           --exclude-unreachable-branches \
           --exclude-throw-branches \
           --print-summary \
-          --xml "$XML_PATH" \
-          --html-details "$OUTPUT_DIR/index.html" 2>&1 || true
+          --xml '$XML_PATH' \
+          --html-details '$OUTPUT_DIR/index.html'" 2>&1 || true)
+        
+        echo "$GCOVR_OUTPUT"
+        echo ""
+
+        # Check XML output
+        echo "=== Coverage XML Analysis ==="
+        if [ -f "$XML_PATH" ]; then
+          echo "✓ XML file created: $XML_PATH"
+          XML_SIZE=$(stat -f%z "$XML_PATH" 2>/dev/null || stat -c%s "$XML_PATH" 2>/dev/null || echo "unknown")
+          echo "  Size: $XML_SIZE bytes"
+          
+          # Show first few lines of XML
+          echo "  First 500 chars:"
+          head -c 500 "$XML_PATH" | sed 's/^/    /'
+          echo ""
+          echo "  Statistics from XML:"
+          grep -o 'line-rate="[^"]*"' "$XML_PATH" | head -1 || echo "    (no line-rate found)"
+          grep -o 'lines-valid="[^"]*"' "$XML_PATH" | head -1 || echo "    (no lines-valid found)"
+          grep -o 'lines-covered="[^"]*"' "$XML_PATH" | head -1 || echo "    (no lines-covered found)"
+        else
+          echo "✗ XML file NOT created: $XML_PATH"
+        fi
+        echo ""
+
+        # Check HTML output
+        echo "=== Coverage HTML Analysis ==="
+        if [ -f "$OUTPUT_DIR/index.html" ]; then
+          echo "✓ HTML file created: $OUTPUT_DIR/index.html"
+          HTML_SIZE=$(stat -f%z "$OUTPUT_DIR/index.html" 2>/dev/null || stat -c%s "$OUTPUT_DIR/index.html" 2>/dev/null || echo "unknown")
+          echo "  Size: $HTML_SIZE bytes"
+        else
+          echo "✗ HTML file NOT created: $OUTPUT_DIR/index.html"
+        fi
+        echo ""
 
         # Extract percentage
+        echo "=== Coverage Percentage ==="
         PERCENTAGE=0
         if [ -f "$XML_PATH" ]; then
-          PERCENTAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 | awk '{printf "%d", $1 * 100}')
+          PERCENTAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML_PATH" | head -1 | awk '{printf "%d", $1 * 100}' || echo "0")
         fi
         : "${PERCENTAGE:=0}"
 
-        echo "Coverage: ${PERCENTAGE}%"
+        echo "Extracted coverage: ${PERCENTAGE}%"
+        echo ""
+        echo "=== Final Output ==="
         echo "xml_path=${XML_PATH}" >> "$GITHUB_OUTPUT"
         echo "html_dir=${OUTPUT_DIR}" >> "$GITHUB_OUTPUT"
         echo "percent=${PERCENTAGE}" >> "$GITHUB_OUTPUT"
+        echo "GCOVR completed. Coverage: ${PERCENTAGE}%"
