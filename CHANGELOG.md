@@ -14,6 +14,24 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-11-22
+
+### Changed
+
+- clang-tidy
+- fix
+- finalize canonical clang-tidy configuration with all exclusions
+- merge project-specific clang-tidy exclusions into canonical config
+- use tobus .clang-tidy as canonical configuration
+- synchronize clang-tidy config across all projects
+- Merge branch 'main' of github.com:ai-warevo/.github
+
+### Fixed
+
+- suppress modernize-use-nodiscard for Catch2
+- check existing entries before early exit
+- suppress Catch2 framework warnings in clang-tidy
+
 ## [1.8.0] - 2026-11-21
 
 ### Added
