@@ -38,10 +38,15 @@ runs:
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
         $cert_name = "${{ inputs.certificate_name }}"
+        $dryRun = "${{ inputs.dry_run }}" -eq 'true'
         
         if (-not $cert_b64) {
-          Write-Host "ERROR: certificate_secret is empty"
-          exit 1
+          if (-not $dryRun) {
+            Write-Host "ERROR: certificate_secret is empty"
+            exit 1
+          }
+          Write-Host "SKIP: certificate_secret is empty (dry_run mode)"
+          exit 0
         }
         
         # Create temp certificate file
@@ -51,16 +56,8 @@ runs:
           # Decode base64 and write to file
           $certBytes = [System.Convert]::FromBase64String($cert_b64)
           [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-          Write-Host "✓ Certificate decoded successfully: $certPath ($(Get-Item $certPath).Length bytes)"
-          
-          # Verify file exists and is readable
-          if (Test-Path $certPath) {
-            Write-Host "✓ Certificate file verified: $certPath"
-            "cert_path=$certPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
-            Write-Host "ERROR: Failed to write certificate file"
-            exit 1
-          }
+          Write-Host "✓ Certificate decoded: $certPath ($(Get-Item $certPath).Length bytes)"
+          "cert_path=$certPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
         } catch {
           Write-Host "ERROR: Failed to decode certificate: $_"
           exit 1
@@ -71,57 +68,47 @@ runs:
       id: import
       shell: powershell
       run: |
-        $cert_b64 = "${{ inputs.certificate_secret }}"
         $certPath = "${{ steps.decode.outputs.cert_path }}"
         $certPassword = "${{ inputs.certificate_password }}"
         $dryRun = "${{ inputs.dry_run }}" -eq 'true'
         
-        if (-not $cert_b64) {
-          Write-Host "SKIP: certificate_secret not configured"
+        if ($dryRun) {
+          Write-Host "DRY RUN: Skipping certificate import"
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 0
         }
         
-        if ($dryRun) {
-          Write-Host "DRY RUN: Skipping certificate import to Windows stores"
+        if (-not $certPath -or -not (Test-Path $certPath)) {
+          Write-Host "ERROR: Certificate file not found: $certPath"
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          exit 0
+          exit 1
         }
         
         try {
-          # Import to CurrentUser\My store (personal certificates)
-          Write-Host "Importing certificate to CurrentUser\My store..."
+          Write-Host "Importing certificate to stores..."
           $cert = Import-PfxCertificate `
             -FilePath $certPath `
             -CertStoreLocation "Cert:\CurrentUser\My" `
             -Password (ConvertTo-SecureString $certPassword -AsPlainText -Force) `
             -ErrorAction Stop
           
-          Write-Host "✓ Certificate imported: $($cert.Subject)"
-          Write-Host "  Thumbprint: $($cert.Thumbprint)"
+          Write-Host "✓ Imported: $($cert.Subject)"
           
-          # Import to Trusted Root Certification Authorities (LocalMachine scope)
-          Write-Host "Importing to Trusted Root store..."
+          # Import to Trusted Root and TrustedPublisher stores
           $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
           $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $rootStore.Add($cert)
           $rootStore.Close()
-          Write-Host "✓ Added to Root store"
           
-          # Import to Trusted Publishers (LocalMachine scope)
-          Write-Host "Importing to TrustedPublisher store..."
           $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "LocalMachine")
           $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $pubStore.Add($cert)
           $pubStore.Close()
-          Write-Host "✓ Added to TrustedPublisher store"
           
           "imported=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "subject=$($cert.Subject)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          
-          Write-Host "✓ Certificate import completed"
         } catch {
-          Write-Host "ERROR: Failed to import certificate: $_"
+          Write-Host "ERROR: Import failed: $_"
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 1
         }
