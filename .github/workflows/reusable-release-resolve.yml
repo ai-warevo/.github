@@ -34,9 +34,20 @@ jobs:
           fetch-depth: 0
 
       - name: Generate changelog from git log
+        if: github.event_name == 'workflow_dispatch'
         uses: ai-warevo/.github/.github/actions/changelog-generate@main
         with:
           force: 'true'
+        continue-on-error: true
+
+      - name: Ensure [Unreleased] section exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+            # Insert [Unreleased] after the header
+            sed -i '/^# Changelog/a \\n## [Unreleased]' CHANGELOG.md
+          fi
+        shell: bash
 
       - name: Resolve version
         id: version
