@@ -94,6 +94,7 @@ jobs:
 
       - name: Generate Release Notes
         id: changelog
+        if: github.event_name == 'workflow_dispatch'
         uses: ai-warevo/.github/.github/actions/changelog-release@main
         with:
           tag: v${{ inputs.version }}
@@ -106,7 +107,7 @@ jobs:
         with:
           tag_name: v${{ inputs.version }}
           name: v${{ inputs.version }}
-          body_path: ${{ steps.changelog.outputs.body_path }}
+          body_path: ${{ github.event_name == 'workflow_dispatch' && steps.changelog.outputs.body_path || '' }}
           files: |
             ${{ inputs.artifact_directory }}/**
           generate_release_notes: false
@@ -117,5 +118,5 @@ jobs:
         with:
           tag_name: v${{ inputs.version }}
           name: v${{ inputs.version }}
-          body_path: ${{ steps.changelog.outputs.body_path }}
+          body_path: ${{ github.event_name == 'workflow_dispatch' && steps.changelog.outputs.body_path || '' }}
           generate_release_notes: false
