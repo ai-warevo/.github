@@ -52,7 +52,7 @@ inputs:
   header_filter:
     description: 'Regex for headers to include in diagnostics'
     required: false
-    default: '.*'
+    default: '.*/include/.*|.*/src/.*'
   exclude:
     description: 'Directory names or file names to exclude from compile database paths (comma-separated)'
     required: false
@@ -160,7 +160,7 @@ runs:
               exit 1
             fi
           fi
-        done < <(python3 -c 'import json, sys; [print((entry["file"] if entry["file"].startswith("/") else entry["directory"] + "/" + entry["file"])) for entry in json.load(open(sys.argv[1]))]' "${BUILD_PATH}/compile_commands.json")
+        done < <(python3 -c 'import json, sys; [print((entry["file"] if entry["file"].startswith("/") else entry["directory"] + "/" + entry["file"])) for entry in json.load(open(sys.argv[1])) if "_deps" not in entry.get("file", "") and "_deps" not in entry.get("directory", "") and "build" not in entry.get("directory", "")]' "${BUILD_PATH}/compile_commands.json")
 
         if [ "$ERRORS" -gt 0 ]; then
           echo -e "clang-tidy found issues in $ERRORS file(s):\n$WARNINGS"
