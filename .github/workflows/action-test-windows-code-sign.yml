@@ -21,9 +21,28 @@ jobs:
 
       - name: Test with invalid base64
         uses: ./.github/actions/windows-code-sign
+        continue-on-error: true
         with:
           certificate_secret: '!!!NOT_VALID!!!'
           certificate_password: 'dummy'
+
+      - name: Generate test certificate
+        shell: powershell
+        run: |
+          $cert = New-SelfSignedCertificate -CertStoreLocation "Cert:\CurrentUser\My" -Subject "CN=TestCert" -KeyUsage DigitalSignature
+          $certPath = Join-Path $env:TEMP "test_cert.pfx"
+          $password = ConvertTo-SecureString "testpass123" -AsPlainText -Force
+          Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password | Out-Null
+          $cert_b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($certPath))
+          "CERT_B64=$cert_b64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Remove-Item $certPath
+          Remove-Item -Path $cert.PSPath
+
+      - name: Test with valid certificate
+        uses: ./.github/actions/windows-code-sign
+        with:
+          certificate_secret: ${{ env.CERT_B64 }}
+          certificate_password: 'testpass123'
 
       - name: Verify
         shell: powershell
