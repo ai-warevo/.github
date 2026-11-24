@@ -10,6 +10,7 @@ jobs:
   test:
     name: windows-code-sign
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 

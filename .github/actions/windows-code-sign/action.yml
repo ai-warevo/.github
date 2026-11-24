@@ -14,6 +14,7 @@ runs:
   steps:
     - name: Import certificate
       shell: powershell
+      timeout-minutes: 5
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
         if (-not $cert_b64) {
@@ -27,16 +28,16 @@ runs:
         [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
         # Import to CurrentUser\My store
-        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force) -Exportable
+        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force)
         Write-Host "Certificate imported: $($cert.Subject)"
 
-        # Also import to Trusted Root and Trusted Publishers
-        $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "CurrentUser")
+        # Also import to Trusted Root and Trusted Publishers (LocalMachine skips the GUI prompt)
+        $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
         $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
         $rootStore.Add($cert)
         $rootStore.Close()
 
-        $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "CurrentUser")
+        $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "LocalMachine")
         $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
         $pubStore.Add($cert)
         $pubStore.Close()
