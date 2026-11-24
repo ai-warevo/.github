@@ -21,7 +21,6 @@ jobs:
 
       - name: Test with invalid base64
         uses: ./.github/actions/windows-code-sign
-        continue-on-error: true
         with:
           certificate_secret: '!!!NOT_VALID!!!'
           certificate_password: 'dummy'

@@ -15,6 +15,7 @@ runs:
     - name: Import certificate
       shell: powershell
       run: |
+        $ErrorActionPreference = 'Stop'
         $cert_b64 = "${{ inputs.certificate_secret }}"
         if (-not $cert_b64) {
           Write-Host "SIGNING_CERTIFICATE not configured; skipping certificate import"
@@ -27,7 +28,8 @@ runs:
         [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
         # Import to CurrentUser\My store
-        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force)
+        $securePassword = ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force
+        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password $securePassword
         Write-Host "Certificate imported: $($cert.Subject)"
 
         # Also import to Trusted Root and Trusted Publishers
