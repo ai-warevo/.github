@@ -1,16 +1,7 @@
-name: 'Test: windows-code-sign action'
+name: Unit Tests - windows-code-sign
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/actions/windows-code-sign/**'
-      - '.github/workflows/action-test-windows-code-sign.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/actions/windows-code-sign/**'
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -39,12 +30,13 @@ jobs:
           Write-Host "Generated certificate: $($cert.Subject)"
           Write-Host "Thumbprint: $($cert.Thumbprint)"
           
-          # Export to PFX without password
+          # Export to PFX with password
           $pfxPath = Join-Path $env:TEMP "test-cert.pfx"
+          $password = ConvertTo-SecureString -String "TestPassword123!" -Force -AsPlainText
           Export-PfxCertificate `
             -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
             -FilePath $pfxPath `
-            -ProtectTo @() `
+            -Password $password `
             -NoProperties `
             -Force | Out-Null
           
@@ -65,7 +57,7 @@ jobs:
         uses: ./.github/actions/windows-code-sign
         with:
           certificate_secret: ${{ steps.gen_cert.outputs.cert_b64 }}
-          certificate_password: ''
+          certificate_password: 'TestPassword123!'
           dry_run: 'true'
 
       - name: Verify outputs in dry-run
@@ -134,10 +126,11 @@ jobs:
             -KeyLength 2048
           
           $pfxPath = Join-Path $env:TEMP "integration-test-cert.pfx"
+          $password = ConvertTo-SecureString -String "TestPassword123!" -Force -AsPlainText
           Export-PfxCertificate `
             -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
             -FilePath $pfxPath `
-            -ProtectTo @() `
+            -Password $password `
             -NoProperties `
             -Force | Out-Null
           

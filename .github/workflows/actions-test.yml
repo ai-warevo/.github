@@ -94,3 +94,6 @@ jobs:
   setup-toolchain:
     if: ${{ inputs.actions == '' || contains(format(',{0},', inputs.actions), ',setup-toolchain,') }}
     uses: ai-warevo/.github/.github/workflows/action-test-setup-toolchain.yml@main
+  windows-code-sign:
+    if: ${{ inputs.actions == '' || contains(format(',{0},', inputs.actions), ',windows-code-sign,') }}
+    uses: ai-warevo/.github/.github/workflows/action-test-windows-code-sign.yml@main
