@@ -68,7 +68,7 @@ runs:
         
         # Import certificate
         try {
-          $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString $certPassword -AsPlainText -Force)
+          $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString $certPassword -AsPlainText -Force) -NoInteraction
           Write-Host "Imported: $($cert.Subject)"
           $subject = $cert.Subject
           
@@ -89,5 +89,9 @@ runs:
           Remove-Item $certPath -Force -ErrorAction SilentlyContinue
         }
         
-        "imported=$($imported.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+        if ($imported) {
+          "imported=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+        } else {
+          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+        }
         "subject=$subject" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
