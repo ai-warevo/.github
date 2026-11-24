@@ -28,51 +28,50 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    # Step 1: Decode and import certificate
     - name: Import certificate to Windows stores
       id: sign
-      shell: powershell
+      shell: pwsh
       run: |
-        $cert_b64 = "${{ inputs.certificate_secret }}"
-        $certPassword = "${{ inputs.certificate_password }}"
-        $dryRun = "${{ inputs.dry_run }}" -eq 'true'
-        $certName = "${{ inputs.certificate_name }}"
+        param(
+          [string]$cert_b64 = "${{ inputs.certificate_secret }}",
+          [string]$certPassword = "${{ inputs.certificate_password }}",
+          [string]$dryRunStr = "${{ inputs.dry_run }}",
+          [string]$certName = "${{ inputs.certificate_name }}"
+        )
         
-        # Initialize outputs
-        $imported = "false"
+        $dryRun = $dryRunStr -eq 'true'
+        $imported = $false
         $subject = ""
         
-        # Skip if no certificate
-        if (-not $cert_b64) {
+        if ([string]::IsNullOrEmpty($cert_b64)) {
           Write-Host "SKIP: Empty certificate"
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
           "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 0
         }
         
-        # Decode certificate
         $certPath = Join-Path $env:TEMP $certName
+        
         try {
           $certBytes = [System.Convert]::FromBase64String($cert_b64)
           [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-          Write-Host "✓ Decoded certificate ($([Math]::Round((Get-Item $certPath).Length / 1KB, 1))KB)"
+          $sizeKB = [Math]::Round((Get-Item $certPath).Length / 1KB, 1)
+          Write-Host "Decoded certificate ($sizeKB KB)"
         } catch {
-          Write-Host "ERROR: Failed to decode certificate: $_"
+          Write-Host "ERROR: Decode failed: $_"
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
           "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 1
         }
         
-        # Skip import if dry_run
         if ($dryRun) {
-          Write-Host "DRY RUN: Skipping certificate import"
+          Write-Host "DRY RUN: Skipping import"
           Remove-Item $certPath -Force -ErrorAction SilentlyContinue
           "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
           "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 0
         }
         
-        # Import certificate
         try {
           $cert = Import-PfxCertificate `
             -FilePath $certPath `
@@ -80,29 +79,25 @@ runs:
             -Password (ConvertTo-SecureString $certPassword -AsPlainText -Force) `
             -ErrorAction Stop
           
-          Write-Host "✓ Imported: $($cert.Subject)"
+          Write-Host "Imported: $($cert.Subject)"
           $subject = $cert.Subject
           
-          # Add to Trusted Root
           $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
           $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $rootStore.Add($cert)
           $rootStore.Close()
-          Write-Host "✓ Added to Root store"
           
-          # Add to TrustedPublisher
           $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "LocalMachine")
           $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $pubStore.Add($cert)
           $pubStore.Close()
-          Write-Host "✓ Added to TrustedPublisher store"
           
-          $imported = "true"
+          $imported = $true
         } catch {
           Write-Host "ERROR: Import failed: $_"
         } finally {
           Remove-Item $certPath -Force -ErrorAction SilentlyContinue
         }
         
-        "imported=$imported" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+        "imported=$($imported.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
         "subject=$subject" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
