@@ -14,6 +14,34 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-11-24
+
+### Changed
+
+- ci
+- ci <3
+- C++
+- ci <3
+- Merge branch 'main' of github.com:ai-warevo/.github
+
+### Fixed
+
+- ci fix
+- ci fix
+- ci fix
+- ci fix
+- ci fix
+- ci fix
+- ci fix
+- ci fix
+- one more time ci
+- ci
+- ci
+- avoid SIGPIPE when reading line-rate
+- output line_rate as decimal instead of percent
+- disable shell globbing in exclude patterns
+- disable shell globbing in exclude patterns
+
 ## [1.10.1] - 2026-11-22
 
 ### Changed
