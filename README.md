@@ -18,7 +18,7 @@ To ensure all commits in the project follow the [Conventional Commits](https://w
 
 ```bash
 # Copy hook into the project and set up in git
-mkdir -p .husky .git/hooks
+mkdir -p .husky .git/hooksqq
 cp .github/.husky/commit-msg .husky/commit-msg .git/hooks/commit-msg
 chmod +x .git/hooks/commit-msg
 
