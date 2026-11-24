@@ -8,90 +8,37 @@ inputs:
   certificate_password:
     description: 'Password to unlock the PFX certificate'
     required: true
-  dry_run:
-    description: 'If true, validate base64 without importing'
-    required: false
-    default: 'false'
-
-outputs:
-  certificate_imported:
-    description: 'true if certificate was imported, false otherwise'
-    value: ${{ steps.import.outputs.imported }}
-  certificate_subject:
-    description: 'Certificate subject if imported'
-    value: ${{ steps.import.outputs.subject }}
 
 runs:
   using: 'composite'
   steps:
     - name: Import certificate
-      id: import
       shell: powershell
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
-        $certPassword = "${{ inputs.certificate_password }}"
-        $dryRun = "${{ inputs.dry_run }}" -eq 'true'
-        
-        $imported = $false
-        $subject = ""
-        
-        # Skip if no certificate
         if (-not $cert_b64) {
-          Write-Host "SKIP: Empty certificate"
-          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "SIGNING_CERTIFICATE not configured; skipping certificate import"
           exit 0
         }
-        
-        # Decode certificate
+
+        # Decode base64 certificate
+        $certBytes = [System.Convert]::FromBase64String($cert_b64)
         $certPath = Join-Path $env:TEMP "code_signing.pfx"
-        try {
-          $certBytes = [System.Convert]::FromBase64String($cert_b64)
-          [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-          $sizeKB = [Math]::Round((Get-Item $certPath).Length / 1KB, 1)
-          Write-Host "Decoded: $sizeKB KB"
-        } catch {
-          Write-Host "ERROR: Decode failed"
-          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          exit 1
-        }
-        
-        # Skip import if dry_run
-        if ($dryRun) {
-          Write-Host "DRY RUN: Skipping import"
-          Remove-Item $certPath -Force
-          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          exit 0
-        }
-        
-        # Import certificate
-        try {
-          $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString $certPassword -AsPlainText -Force) -NoInteraction
-          Write-Host "Imported: $($cert.Subject)"
-          $subject = $cert.Subject
-          
-          $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "CurrentUser")
-          $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-          $rootStore.Add($cert)
-          $rootStore.Close()
-          
-          $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "CurrentUser")
-          $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-          $pubStore.Add($cert)
-          $pubStore.Close()
-          
-          $imported = $true
-        } catch {
-          Write-Host "ERROR: Import failed"
-        } finally {
-          Remove-Item $certPath -Force -ErrorAction SilentlyContinue
-        }
-        
-        if ($imported) {
-          "imported=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-        } else {
-          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-        }
-        "subject=$subject" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+
+        # Import to CurrentUser\My store
+        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force)
+        Write-Host "Certificate imported: $($cert.Subject)"
+
+        # Also import to Trusted Root and Trusted Publishers
+        $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "CurrentUser")
+        $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+        $rootStore.Add($cert)
+        $rootStore.Close()
+
+        $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "CurrentUser")
+        $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+        $pubStore.Add($cert)
+        $pubStore.Close()
+
+        Remove-Item $certPath

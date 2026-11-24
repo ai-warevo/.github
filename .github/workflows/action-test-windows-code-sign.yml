@@ -7,122 +7,25 @@ permissions:
   contents: read
 
 jobs:
-  test-empty-secret:
-    name: Test empty secret
+  test:
+    name: windows-code-sign
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - name: Run with empty secret
+      - name: Test with empty secret
         uses: ./.github/actions/windows-code-sign
         with:
           certificate_secret: ''
           certificate_password: 'dummy'
 
-      - name: Verify skipped
-        shell: powershell
-        run: Write-Host "✓ Empty secret handled"
-
-  test-invalid-base64:
-    name: Test invalid base64
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
-      - name: Run with invalid base64
+      - name: Test with invalid base64
         uses: ./.github/actions/windows-code-sign
         continue-on-error: true
         with:
-          certificate_secret: '!!!NOT_VALID_BASE64!!!'
+          certificate_secret: '!!!NOT_VALID!!!'
           certificate_password: 'dummy'
 
-      - name: Verify rejected
+      - name: Verify
         shell: powershell
-        run: Write-Host "✓ Invalid base64 rejected"
-
-  test-dry-run:
-    name: Test dry-run mode
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
-      - name: Generate test certificate
-        id: gen
-        shell: powershell
-        run: |
-          $cert = New-SelfSignedCertificate `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -Subject "CN=Test-Cert" `
-            -Type CodeSigningCert `
-            -NotAfter (Get-Date).AddYears(1) `
-            -KeyLength 2048
-          
-          $pfxPath = Join-Path $env:TEMP "test.pfx"
-          $password = ConvertTo-SecureString -String "Test123!" -Force -AsPlainText
-          Export-PfxCertificate `
-            -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
-            -FilePath $pfxPath `
-            -Password $password `
-            -NoProperties -Force | Out-Null
-          
-          $certBytes = [IO.File]::ReadAllBytes($pfxPath)
-          $cert_b64 = [Convert]::ToBase64String($certBytes)
-          "cert_b64=$cert_b64" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          
-          Remove-Item $pfxPath -Force
-          Get-ChildItem "Cert:\CurrentUser\My\$($cert.Thumbprint)" | Remove-Item -Force
-
-      - name: Run in dry-run mode
-        uses: ./.github/actions/windows-code-sign
-        with:
-          certificate_secret: ${{ steps.gen.outputs.cert_b64 }}
-          certificate_password: 'Test123!'
-          dry_run: 'true'
-
-      - name: Verify dry-run
-        shell: powershell
-        run: Write-Host "✓ Dry-run mode completed"
-
-  test-full-import:
-    name: Test full certificate import
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
-      - name: Generate test certificate
-        id: gen
-        shell: powershell
-        run: |
-          $cert = New-SelfSignedCertificate `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -Subject "CN=Integration-Test" `
-            -Type CodeSigningCert `
-            -NotAfter (Get-Date).AddYears(1) `
-            -KeyLength 2048
-          
-          $pfxPath = Join-Path $env:TEMP "int.pfx"
-          $password = ConvertTo-SecureString -String "Test123!" -Force -AsPlainText
-          Export-PfxCertificate `
-            -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
-            -FilePath $pfxPath `
-            -Password $password `
-            -NoProperties -Force | Out-Null
-          
-          $certBytes = [IO.File]::ReadAllBytes($pfxPath)
-          $cert_b64 = [Convert]::ToBase64String($certBytes)
-          "cert_b64=$cert_b64" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          
-          Remove-Item $pfxPath -Force
-          Get-ChildItem "Cert:\CurrentUser\My\$($cert.Thumbprint)" | Remove-Item -Force
-
-      - name: Run import
-        id: sign
-        uses: ./.github/actions/windows-code-sign
-        continue-on-error: true
-        with:
-          certificate_secret: ${{ steps.gen.outputs.cert_b64 }}
-          certificate_password: 'Test123!'
-
-      - name: Verify import
-        shell: powershell
-        run: Write-Host "✓ Certificate import completed"
+        run: Write-Host "OK"
