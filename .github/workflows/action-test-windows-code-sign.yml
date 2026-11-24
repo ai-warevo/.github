@@ -29,10 +29,10 @@ jobs:
       - name: Generate test certificate
         shell: powershell
         run: |
-          $cert = New-SelfSignedCertificate -CertStoreLocation "Cert:\CurrentUser\My" -Subject "CN=TestCert" -KeyUsage DigitalSignature
+          $cert = New-SelfSignedCertificate -CertStoreLocation "Cert:\CurrentUser\My" -Subject "CN=TestCert" -KeyUsage DigitalSignature -NotAfter (Get-Date).AddYears(1)
           $certPath = Join-Path $env:TEMP "test_cert.pfx"
           $password = ConvertTo-SecureString "testpass123" -AsPlainText -Force
-          Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password | Out-Null
+          Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password -Force | Out-Null
           $cert_b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($certPath))
           "CERT_B64=$cert_b64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Remove-Item $certPath
