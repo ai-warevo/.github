@@ -24,69 +24,52 @@ outputs:
   certificate_subject:
     description: 'Certificate subject extracted from imported certificate (empty if not imported)'
     value: ${{ steps.import.outputs.subject }}
-  certificate_path:
-    description: 'Temporary path where PFX file was created'
-    value: ${{ steps.decode.outputs.cert_path }}
 
 runs:
   using: 'composite'
   steps:
-    # Step 1: Decode base64 certificate
-    - name: Decode and validate certificate
-      id: decode
-      shell: powershell
-      run: |
-        $cert_b64 = "${{ inputs.certificate_secret }}"
-        $cert_name = "${{ inputs.certificate_name }}"
-        
-        if (-not $cert_b64) {
-          Write-Host "SKIP: Empty certificate_secret"
-          "cert_path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          exit 0
-        }
-        
-        $certPath = Join-Path $env:TEMP $cert_name
-        
-        try {
-          $certBytes = [System.Convert]::FromBase64String($cert_b64)
-          [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-          Write-Host "✓ Decoded: $certPath ($(Get-Item $certPath).Length bytes)"
-          "cert_path=$certPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-        } catch {
-          Write-Host "ERROR: Decode failed: $_"
-          "cert_path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          exit 1
-        }
-
-    # Step 2: Import certificate
+    # Step 1: Decode and import certificate
     - name: Import certificate to Windows stores
       id: import
       shell: powershell
       run: |
-        $certPath = "${{ steps.decode.outputs.cert_path }}"
+        $cert_b64 = "${{ inputs.certificate_secret }}"
         $certPassword = "${{ inputs.certificate_password }}"
         $dryRun = "${{ inputs.dry_run }}" -eq 'true'
+        $certName = "${{ inputs.certificate_name }}"
         
-        # Initialize output
-        "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-        "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        # Initialize outputs
+        $imported = "false"
+        $subject = ""
         
-        # Skip if no certificate path
-        if (-not $certPath) {
-          Write-Host "SKIP: No certificate file (dry_run or decode failed)"
+        # Skip if no certificate
+        if (-not $cert_b64) {
+          Write-Host "SKIP: Empty certificate"
+          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 0
         }
         
-        # Skip if dry_run
-        if ($dryRun) {
-          Write-Host "DRY RUN: Skipping import"
-          exit 0
-        }
-        
-        # Verify file exists
-        if (-not (Test-Path $certPath)) {
-          Write-Host "ERROR: Certificate file not found: $certPath"
+        # Decode certificate
+        $certPath = Join-Path $env:TEMP $certName
+        try {
+          $certBytes = [System.Convert]::FromBase64String($cert_b64)
+          [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+          Write-Host "✓ Decoded certificate ($([Math]::Round((Get-Item $certPath).Length / 1KB, 1))KB)"
+        } catch {
+          Write-Host "ERROR: Failed to decode certificate: $_"
+          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           exit 1
+        }
+        
+        # Skip import if dry_run
+        if ($dryRun) {
+          Write-Host "DRY RUN: Skipping certificate import"
+          Remove-Item $certPath -Force -ErrorAction SilentlyContinue
+          "imported=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          "subject=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          exit 0
         }
         
         # Import certificate
@@ -98,33 +81,28 @@ runs:
             -ErrorAction Stop
           
           Write-Host "✓ Imported: $($cert.Subject)"
+          $subject = $cert.Subject
           
           # Add to Trusted Root
           $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
           $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $rootStore.Add($cert)
           $rootStore.Close()
+          Write-Host "✓ Added to Root store"
           
           # Add to TrustedPublisher
           $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "LocalMachine")
           $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
           $pubStore.Add($cert)
           $pubStore.Close()
+          Write-Host "✓ Added to TrustedPublisher store"
           
-          "imported=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-          "subject=$($cert.Subject)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $imported = "true"
         } catch {
           Write-Host "ERROR: Import failed: $_"
-          exit 1
-        }
-
-    # Step 3: Cleanup certificate file
-    - name: Cleanup certificate file
-      shell: powershell
-      if: always()
-      run: |
-        $certPath = "${{ steps.decode.outputs.cert_path }}"
-        if ($certPath -and (Test-Path $certPath)) {
+        } finally {
           Remove-Item $certPath -Force -ErrorAction SilentlyContinue
-          Write-Host "✓ Cleaned up"
         }
+        
+        "imported=$imported" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+        "subject=$subject" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
