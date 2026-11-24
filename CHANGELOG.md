@@ -14,6 +14,21 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.10.3] - 2026-11-24
+
+### Changed
+
+- ci
+- ci
+- ci
+- ai
+- fixik
+- fixik
+
+### Fixed
+
+- fixes
+
 ## [1.10.2] - 2026-11-24
 
 ### Changed
