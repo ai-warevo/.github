@@ -27,7 +27,7 @@ runs:
         [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
         # Import to CurrentUser\My store
-        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force) -Exportable -Force
+        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation "Cert:\CurrentUser\My" -Password (ConvertTo-SecureString "${{ inputs.certificate_password }}" -AsPlainText -Force) -Exportable
         Write-Host "Certificate imported: $($cert.Subject)"
 
         # Also import to Trusted Root and Trusted Publishers
