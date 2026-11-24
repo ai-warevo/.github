@@ -20,17 +20,17 @@ inputs:
 outputs:
   certificate_imported:
     description: 'true if certificate was imported, false if skipped or error'
-    value: ${{ steps.import.outputs.imported }}
+    value: ${{ steps.sign.outputs.imported }}
   certificate_subject:
     description: 'Certificate subject extracted from imported certificate (empty if not imported)'
-    value: ${{ steps.import.outputs.subject }}
+    value: ${{ steps.sign.outputs.subject }}
 
 runs:
   using: 'composite'
   steps:
     # Step 1: Decode and import certificate
     - name: Import certificate to Windows stores
-      id: import
+      id: sign
       shell: powershell
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
