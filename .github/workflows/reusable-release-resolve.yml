@@ -36,7 +36,7 @@ jobs:
       - name: Generate changelog from git log
         uses: ai-warevo/.github/.github/actions/changelog-generate@main
         with:
-          force: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          force: 'true'
 
       - name: Resolve version
         id: version
