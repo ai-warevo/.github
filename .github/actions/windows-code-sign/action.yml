@@ -35,7 +35,6 @@ runs:
     - name: Decode and validate certificate
       id: decode
       shell: powershell
-      timeout-minutes: 2
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
         $cert_name = "${{ inputs.certificate_name }}"
@@ -71,7 +70,6 @@ runs:
     - name: Import certificate to Windows stores
       id: import
       shell: powershell
-      timeout-minutes: 5
       run: |
         $cert_b64 = "${{ inputs.certificate_secret }}"
         $certPath = "${{ steps.decode.outputs.cert_path }}"
