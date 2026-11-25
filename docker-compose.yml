@@ -1,7 +1,7 @@
 # llama.cpp server for DeepSeek Harness (DSH) — RTX 4080 16GB / Ryzen 7 9800X3D / 64GB RAM
 # Model: Qwen3.6-35B-A3B (MoE, ~3B active params), unsloth UD-Q4_K_XL (~20.8 GB).
 # Does not fit 16GB VRAM fully -> hybrid: attention/dense + KV on GPU, overflow MoE experts on CPU RAM.
-#
+# 
 #   download : see README.llama-cpp.md
 #   start    : docker compose --profile llamacpp up -d
 #   logs     : docker compose --profile llamacpp logs -f llama-server
