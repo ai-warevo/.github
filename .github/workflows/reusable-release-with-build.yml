@@ -96,6 +96,7 @@ jobs:
 
       - name: Generate Release Notes
         id: changelog
+        continue-on-error: true
         uses: ai-warevo/.github/.github/actions/changelog-release@main
         with:
           tag: v${{ inputs.version }}
