@@ -67,6 +67,12 @@ runs:
             exit 1
           fi
 
+          # Verify [Unreleased] heading exists
+          if ! grep -q '^## \[Unreleased\]' "$changelog"; then
+            echo "::error::No [Unreleased] section in $changelog"
+            exit 1
+          fi
+
           # Parse [Unreleased] section
           unreleased="$(awk '
             /^## \[Unreleased\]/ { found = 1; next }
@@ -74,15 +80,8 @@ runs:
             found { print }
           ' "$changelog")"
 
-          [ -n "$unreleased" ] || { echo "::error::No [Unreleased] section in $changelog"; exit 1; }
-
-          if ! grep -qE '^### (Breaking|Added|Deprecated|Changed|Removed|Fixed|Security)([[:space:]]|$)' <<< "$unreleased"; then
-            echo "::error::No release-worthy entries found in [Unreleased]"
-            exit 1
-          fi
-
           # Determine highest priority category
-          has_category() { echo "$unreleased" | grep -q "^### $1"; }
+          has_category() { echo "$unreleased" | grep -qE "^### $1([[:space:]]|$)"; }
 
           IFS='.' read -r major minor patch <<< "$current"
 
@@ -90,11 +89,9 @@ runs:
             next_version="$((major + 1)).0.0"
           elif has_category "Added" || has_category "Deprecated"; then
             next_version="${major}.$((minor + 1)).0"
-          elif has_category "Changed" || has_category "Removed" || has_category "Fixed" || has_category "Security"; then
-            next_version="${major}.${minor}.$((patch + 1))"
           else
-            echo "::error::No recognized release categories in [Unreleased]"
-            exit 1
+            # Changed, Removed, Fixed, Security, or empty [Unreleased] -> patch bump
+            next_version="${major}.${minor}.$((patch + 1))"
           fi
 
           echo "release_version=v${next_version}" >> $GITHUB_OUTPUT
