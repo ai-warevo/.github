@@ -27,9 +27,29 @@ runs:
         [ -f "$changelog" ] || { echo "::error::CHANGELOG.md not found"; exit 1; }
 
         # Determine the previous tag (latest v* tag).
-        prev_tag="$(git tag -l 'v*' --sort=-version:refname | head -n1)"
-        if [ -n "$prev_tag" ]; then
-          range="${prev_tag}..HEAD"
+        # For releases: use the two most recent tags (since the latest was just created).
+        # For dev builds: use latest tag..HEAD.
+        all_tags="$(git tag -l 'v*' --sort=-version:refname)"
+        latest_tag="$(echo "$all_tags" | head -n1)"
+        second_latest_tag="$(echo "$all_tags" | head -n2 | tail -n1)"
+        
+        if [ -n "$latest_tag" ]; then
+          # Dereference tag to commit (handles annotated tags)
+          latest_commit="$(git rev-parse ${latest_tag}^{} 2>/dev/null || git rev-parse ${latest_tag})"
+          head_commit="$(git rev-parse HEAD)"
+          
+          # If latest tag is on HEAD, we're in release mode (tag was just created)
+          if [ "$latest_commit" = "$head_commit" ]; then
+            # Use the range between the two most recent tags
+            if [ -n "$second_latest_tag" ]; then
+              range="${second_latest_tag}..${latest_tag}"
+            else
+              range="${latest_tag}"
+            fi
+          else
+            # Normal dev mode: use latest tag..HEAD
+            range="${latest_tag}..HEAD"
+          fi
         else
           range="HEAD"
         fi
