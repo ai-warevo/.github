@@ -7,15 +7,15 @@
 # Parameters:
 #   source_dir          — source directory (default: .)
 #   build_dir           — build directory (default: build)
-#   container_image     — CI container image for Linux (default: ghcr.io/ai-warevo/ci-cpp23)
-#   linux_toolchains    — JSON array of Linux toolchains (default: ["clang18-libcxx", "gcc15"])
 #   build_types         — JSON array of build types (default: ["Debug", "Release"])
 #   enable_windows      — Enable Windows MSVC builds (default: true)
 #   cmake_extra_args_linux   — Extra CMake args for Linux builds (default: empty)
 #   cmake_extra_args_windows — Extra CMake args for Windows builds (default: empty)
 #   ctest_timeout       — CTest timeout in seconds (default: 120)
 #   post_build_command  — Optional command to run after tests (default: empty)
-#   setup_command         — Optional Bash command to prepare the source tree after checkout
+#   setup_command       — Optional Bash command to prepare the source tree after checkout
+#
+# Linux builds across: gcc-15, clang-18-libstdc, clang-18-libcxx (always hardcoded)
 
 name: reusable-matrix
 
@@ -30,14 +30,6 @@ on:
         description: 'Build directory'
         type: string
         default: build
-      container_image:
-        description: 'CI container image for Linux jobs'
-        type: string
-        default: ghcr.io/ai-warevo/ci-cpp23
-      linux_toolchains:
-        description: 'JSON array of Linux toolchains (e.g., ["clang18-libcxx", "gcc15"])'
-        type: string
-        default: '["clang18-libcxx", "gcc15"]'
       build_types:
         description: 'JSON array of build types (e.g., ["Debug", "Release"])'
         type: string
@@ -72,16 +64,22 @@ permissions:
 
 jobs:
   build-test-linux:
-    name: ${{ matrix.toolchain }} / ${{ matrix.build_type }}
+    name: ${{ matrix.image }} / ${{ matrix.build_type }}
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ${{ fromJSON(inputs.linux_toolchains) }}
         build_type: ${{ fromJSON(inputs.build_types) }}
+        include:
+          - image: ghcr.io/ai-warevo/cpp23:gcc-15
+            cmake_args: -GNinja -DCMAKE_CXX_COMPILER=g++-15
+          - image: ghcr.io/ai-warevo/cpp23:clang-18-libstdc
+            cmake_args: -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS=-stdlib=libstdc++ -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libstdc++ -DCMAKE_SHARED_LINKER_FLAGS=-stdlib=libstdc++
+          - image: ghcr.io/ai-warevo/cpp23:clang-18-libcxx
+            cmake_args: -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fexperimental-library" -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++ -DCMAKE_SHARED_LINKER_FLAGS=-stdlib=libc++
 
     runs-on: ubuntu-latest
     container:
-      image: ${{ inputs.container_image }}
+      image: ${{ matrix.image }}
       options: --user root
 
     steps:
@@ -95,13 +93,6 @@ jobs:
           PREPARE_COMMAND: ${{ inputs.setup_command }}
         run: bash -euo pipefail -c "$PREPARE_COMMAND"
 
-      - name: Install toolchain
-        id: tc
-        uses: ai-warevo/.github/.github/actions/setup-toolchain@main
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          container_mode: true
-
       - name: Configure & Build
         uses: ai-warevo/.github/.github/actions/cmake-build@main
         with:
@@ -109,7 +100,7 @@ jobs:
           build_dir: ${{ inputs.build_dir }}
           build_type: ${{ matrix.build_type }}
           extra_args: >-
-            ${{ steps.tc.outputs.cmake_args }}
+            ${{ matrix.cmake_args }}
             ${{ inputs.cmake_extra_args_linux }}
 
       - name: Run Tests
