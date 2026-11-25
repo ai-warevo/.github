@@ -14,6 +14,13 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [1.10.6] - 2026-11-25
+
+### Changed
+
+- ci
+- ci
+
 ## [1.10.5] - 2026-11-25
 
 ### Changed
