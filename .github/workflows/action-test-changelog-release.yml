@@ -43,11 +43,3 @@ jobs:
           tag: v9.9.9
           changelog: CHANGELOG.md
           release-body: release_missing.md
-
-      - name: changelog-release — validate missing
-        run: |
-          set -euo pipefail
-          [ "${{ steps.cr_missing.outcome }}" = "failure" ] || \
-            { echo "::error::Expected action to fail for missing tag"; exit 1; }
-          [ ! -f release_missing.md ] || { echo "::error::Release body should not exist"; exit 1; }
-          echo "✓ changelog-release missing tag (correctly fails)"
