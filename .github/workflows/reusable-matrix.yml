@@ -70,11 +70,11 @@ jobs:
       matrix:
         build_type: ${{ fromJSON(inputs.build_types) }}
         include:
-          - image: ghcr.io/ai-warevo/cpp23:gcc-15
+          - image: ghcr.io/ai-warevo/ci-cpp23:gcc-15
             cmake_args: -GNinja -DCMAKE_CXX_COMPILER=g++-15
-          - image: ghcr.io/ai-warevo/cpp23:clang-18-libstdc
+          - image: ghcr.io/ai-warevo/ci-cpp23:clang-18-libstdc
             cmake_args: -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS=-stdlib=libstdc++ -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libstdc++ -DCMAKE_SHARED_LINKER_FLAGS=-stdlib=libstdc++
-          - image: ghcr.io/ai-warevo/cpp23:clang-18-libcxx
+          - image: ghcr.io/ai-warevo/ci-cpp23:clang-18-libcxx
             cmake_args: -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fexperimental-library" -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++ -DCMAKE_SHARED_LINKER_FLAGS=-stdlib=libc++
 
     runs-on: ubuntu-latest
