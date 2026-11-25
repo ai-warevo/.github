@@ -15,13 +15,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Test with empty secret
-        uses: ./.github/actions/windows-code-sign
+        uses: ai-warevo/.github/.github/actions/windows-code-sign
         with:
           certificate_secret: ''
           certificate_password: 'dummy'
 
       - name: Test with invalid base64
-        uses: ./.github/actions/windows-code-sign
+        uses: ai-warevo/.github/.github/actions/windows-code-sign
         continue-on-error: true
         with:
           certificate_secret: '!!!NOT_VALID!!!'
@@ -40,7 +40,7 @@ jobs:
           Remove-Item -Path $cert.PSPath
 
       - name: Test with valid certificate
-        uses: ./.github/actions/windows-code-sign
+        uses: ai-warevo/.github/.github/actions/windows-code-sign
         with:
           certificate_secret: ${{ env.CERT_B64 }}
           certificate_password: 'testpass123'
