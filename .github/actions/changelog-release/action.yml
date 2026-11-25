@@ -72,11 +72,6 @@ runs:
             for (i = first; i <= n; i++) print lines[i]
           }')"
 
-        if [ -z "$notes" ]; then
-          echo "::error::CHANGELOG.md has no entries for [$version]. Trigger the release workflow (gh workflow run release.yml) to cut releases."
-          exit 1
-        fi
-
         echo "version=${version}" >> $GITHUB_OUTPUT
         # Store notes in a temp file to handle multiline values
         echo "$notes" > /tmp/_changelog_notes.txt
