@@ -101,7 +101,6 @@ All 23 composite actions live in `.github/actions/` and are referenced by consum
 | `changelog-generate/` | Generate [Unreleased] section from git log (conventional commits) |
 | `changelog-promote/` | Promote [Unreleased] to a version heading and write VERSION file |
 | `changelog-release/` | Extract release notes from CHANGELOG.md by tag |
-| `changelog-version/` | Derive next semantic version from [Unreleased] changelog categories |
 | `checksums/` | Generate SHA256SUMS.txt for files in a directory |
 | `checksums-verify/` | Verify SHA256 checksums against a checksums file |
 | `clang-format/` | Check C++ formatting with clang-format |

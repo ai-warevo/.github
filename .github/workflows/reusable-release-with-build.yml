@@ -1,17 +1,11 @@
-# reusable-release-with-build — commit/tag and publish release
+# reusable-release-with-build — resolve version → build → commit/tag → publish
 #
 # Reusable workflow for projects where VERSION is embedded during build.
-# Assumes caller has already:
-#   1. Resolved version
-#   2. Built with that version
-#   3. Collected artifacts
-#
-# This workflow:
-#   - Updates CHANGELOG (promotes [Unreleased] to version)
-#   - Commits VERSION and CHANGELOG
-#   - Creates and pushes tag
-#   - Generates checksums
-#   - Publishes GitHub Release with artifacts
+# Handles full release cycle:
+#   1. Resolves version (auto from CHANGELOG or explicit)
+#   2. Updates VERSION file for build
+#   3. Caller builds with that VERSION
+#   4. Commits, tags, and publishes release
 
 name: reusable-release-with-build
 
@@ -19,9 +13,9 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Release version without v prefix (e.g., 1.2.3)'
+        description: 'Version override (X.Y.Z); use auto to derive from CHANGELOG.md or empty for auto patch'
         type: string
-        required: true
+        default: ''
       artifact_name:
         description: 'Artifact name to attach to release'
         type: string
@@ -38,14 +32,75 @@ on:
         description: 'Quick Start section for release notes'
         type: string
         default: ''
+    outputs:
+      release_version:
+        description: 'Full release version with v prefix'
+        value: ${{ jobs.resolve-version.outputs.release_version }}
+      release_version_stripped:
+        description: 'Release version without v prefix'
+        value: ${{ jobs.resolve-version.outputs.release_version_stripped }}
 
 permissions:
   contents: write
 
 jobs:
+  # Phase 1: Resolve version
+  resolve-version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.version.outputs.release_version }}
+      release_version_stripped: ${{ steps.version.outputs.release_version_stripped }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog from git log
+        uses: ai-warevo/.github/.github/actions/changelog-generate@main
+        with:
+          force: 'true'
+        continue-on-error: true
+
+      - name: Determine version
+        id: determine
+        run: |
+          version_input="${{ inputs.version }}"
+          
+          # If explicit version provided, use it
+          if [ -n "$version_input" ]; then
+            echo "version_to_use=$version_input" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check if [Unreleased] has entries
+          if grep -qE '^### (Breaking|Added|Deprecated|Changed|Removed|Fixed|Security)' CHANGELOG.md; then
+            echo "version_to_use=auto" >> $GITHUB_OUTPUT
+          else
+            # No entries in [Unreleased], do patch bump
+            current=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1 | sed 's/^v//')
+            [ -z "$current" ] && current="0.0.0"
+            IFS='.' read -r major minor patch <<< "$current"
+            next="${major}.${minor}.$((patch + 1))"
+            echo "version_to_use=$next" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Resolve version
+        id: version
+        uses: ai-warevo/.github/.github/actions/release-version@main
+        with:
+          version: ${{ steps.determine.outputs.version_to_use }}
+
+  # Phase 2: Caller builds with resolved version (gitsync/.github/workflows/release.yml handles this)
+  # This is signaled via outputs from this job
+
+  # Phase 3: Commit, tag, and publish (called after caller's build+collect)
   commit-tag-publish:
     name: Commit, tag, and publish
     runs-on: ubuntu-latest
+    needs: resolve-version
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -53,12 +108,12 @@ jobs:
           fetch-depth: 0
 
       - name: Update VERSION file
-        run: echo "${{ inputs.version }}" > VERSION
+        run: echo "${{ needs.resolve-version.outputs.release_version_stripped }}" > VERSION
         shell: bash
 
       - name: Update CHANGELOG
         run: |
-          version="${{ inputs.version }}"
+          version="${{ needs.resolve-version.outputs.release_version_stripped }}"
           date=$(date +%Y-%m-%d)
           sed -i "s/^\## \[Unreleased\]/## [$version] - $date/" CHANGELOG.md
           {
@@ -73,7 +128,7 @@ jobs:
       - name: Commit and tag
         uses: ai-warevo/.github/.github/actions/release-commit-tag@main
         with:
-          version: v${{ inputs.version }}
+          version: ${{ needs.resolve-version.outputs.release_version }}
           branch: ${{ github.ref_name }}
 
       - name: Download release artifacts
@@ -96,18 +151,17 @@ jobs:
 
       - name: Generate Release Notes
         id: changelog
-        continue-on-error: true
         uses: ai-warevo/.github/.github/actions/changelog-release@main
         with:
-          tag: v${{ inputs.version }}
+          tag: v${{ needs.resolve-version.outputs.release_version_stripped }}
           what-included: ${{ inputs.what-included }}
           quick-start: ${{ inputs.quick-start }}
 
       - name: Create Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
+          tag_name: v${{ needs.resolve-version.outputs.release_version_stripped }}
+          name: v${{ needs.resolve-version.outputs.release_version_stripped }}
           body_path: ${{ steps.changelog.outputs.body_path }}
           files: |
             ${{ inputs.artifact_directory }}/**
