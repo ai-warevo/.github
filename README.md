@@ -13,7 +13,7 @@
 Shared infrastructure repository for **ai-warevo**. Contains reusable artifacts applied across any project — regardless of the tech stack (C#, Python, JS, C++, etc.).
 
 ## Pre-commit Hook: Conventional Commits
-
+ 
 To ensure all commits in the project follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard, install the hook:
 
 ```bash
