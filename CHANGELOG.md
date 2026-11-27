@@ -14,6 +14,30 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-27
+
+### Breaking
+
+- legacy
+
+### Fixed
+
+- fixes
+- fixes
+- fixes
+- fixes
+- fixes
+- fixes
+- fixes
+- fixes
+- fixes
+- build
+- build
+- git
+- 42
+- fixes
+- ci"
+
 ## [1.10.6] - 2026-11-25
 
 ### Changed
