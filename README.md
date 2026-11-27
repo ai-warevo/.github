@@ -4,7 +4,7 @@
 <br />
 [![Coverage](https://raw.githubusercontent.com/ai-warevo/.github/refs/heads/badges/coverage.svg)](https://ai-warevo.github.io/.github/)
 <br />
-[![CI](https://github.com/ai-warevo/.github/.github/workflows/on_push_main.yml/badge.svg?branch=main)](https://github.com/ai-warevo/.github/actions/workflows/on_push_main.yml)
+[![CI](https://github.com/ai-warevo/.github/.github/workflows/on_push_main.yml/badge.svg?branch=main)](https://github.com/ai-warevo/.github/.github/workflows/on_push_main.yml)
 
 > Skills, templates, documentation, CI/CD, and editor configurations for all projects.
 
