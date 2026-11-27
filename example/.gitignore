@@ -1,6 +1,10 @@
 # Build outputs
-build/
-out/
+__pycache__
+dist
+build
+htmlcov
+coverage.xml
+
 
 # IDE
 .vscode/
@@ -21,4 +25,3 @@ out/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
