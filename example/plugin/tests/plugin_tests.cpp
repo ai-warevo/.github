@@ -10,8 +10,8 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_tostring.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <string>
 #include <string_view>
 
 #include "plugin.h"
@@ -33,7 +33,7 @@ TEST_CASE("plugin_version returns 1", "[version]") {
 TEST_CASE("plugin_version_string returns non-empty", "[version]") {
     const auto* s = aw::example::plugin::plugin_version_string();
     REQUIRE(s != nullptr);
-    REQUIRE(std::string_view(s).find("plugin-api") != std::string_view::npos);
+    REQUIRE(std::string(s).find("plugin-api") != std::string::npos);
 }
 
 // ── plugin_compute ────────────────────────────────────────────────────────
@@ -64,13 +64,13 @@ TEST_CASE("plugin_compute: unknown op returns -1", "[compute]") {
 // ── plugin_op_name ────────────────────────────────────────────────────────
 
 TEST_CASE("plugin_op_name: valid ops", "[op_name]") {
-    REQUIRE(std::string_view(aw::example::plugin::plugin_op_name(0)) == "add");
-    REQUIRE(std::string_view(aw::example::plugin::plugin_op_name(1)) == "subtract");
-    REQUIRE(std::string_view(aw::example::plugin::plugin_op_name(2)) == "multiply");
+    REQUIRE(std::string(aw::example::plugin::plugin_op_name(0)) == "add");
+    REQUIRE(std::string(aw::example::plugin::plugin_op_name(1)) == "subtract");
+    REQUIRE(std::string(aw::example::plugin::plugin_op_name(2)) == "multiply");
 }
 
 TEST_CASE("plugin_op_name: unknown op", "[op_name]") {
-    REQUIRE(std::string_view(aw::example::plugin::plugin_op_name(99)) == "unknown");
+    REQUIRE(std::string(aw::example::plugin::plugin_op_name(99)) == "unknown");
 }
 
 } // namespace aw::example::tests
