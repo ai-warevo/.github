@@ -6,7 +6,7 @@ on:
       coverage_cmd:
         type: string
         required: false
-        default: 'cd example && make coverage PRESET=gcc-15-coverage'
+        default: 'cd example && make'
         description: 'Command to generate coverage (must produce coverage.xml and htmlcov/)'
       min_coverage:
         type: number

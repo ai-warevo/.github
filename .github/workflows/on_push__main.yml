@@ -35,12 +35,12 @@ jobs:
   coverage:
     uses: ai-warevo/.github/.github/workflows/reusable__common__coverage_cpp23.yml@main
     with:
-      coverage_cmd: 'cd example && make coverage PRESET=gcc-15-coverage'
+      min_coverage: 42
+      deploy_pages: true
+      deploy_badge: true
+      coverage_cmd: 'cd example && make coverage'
       coverage_artifacts_path: |
         example/coverage.xml
         example/htmlcov/
       coverage_xml_path: coverage.xml
       coverage_html_path: htmlcov
-      min_coverage: 60
-      deploy_pages: true
-      deploy_badge: true

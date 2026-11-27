@@ -36,3 +36,17 @@ jobs:
     with:
       version: ${{ needs.resolve_version.outputs.version }}
       release_notes: ${{ needs.resolve_version.outputs.release_notes }}
+      release_notes_footer: |
+        ### 📦 What's Included
+        - Universal CI/CD workflow templates (pr-fast.yml, weekly-deep.yml, release.yml) for Node.js, Python, C#, C++, Go, Rust, Java
+        - Custom GitHub Action: SVG Badge Generator
+        - AI skills: analyst, planner, executor, skill-creator, git-github-push
+        - Project templates: overview, task, README, CHANGELOG, CONTRIBUTING
+        - LLM server (llama.cpp) with Docker Compose and GPU support
+        
+        ### 🚀 Quick Start
+        Add coverage badge to your README.md:
+        ```md
+        ![Coverage](https://raw.githubusercontent.com/your-org/your-repo/badges/coverage.svg)
+        ```
+
