@@ -35,6 +35,16 @@ on:
         description: 'Path to the version file to set for the build'
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libcxx
+    steps:
+      - uses: actions/checkout@v4
+      - name: lint
+        shell: bash
+        run: ${{ inputs.lint_cmd }}
+
   build:
     name: Build (${{ matrix.preset }})
     strategy:
@@ -84,11 +94,6 @@ jobs:
       - name: Setup MSVC
         if: startsWith(matrix.preset, 'msvc')
         uses: ilammy/msvc-dev-cmd@v1
-
-      - name: lint
-        if: matrix.preset == 'clang18-libcxx-debug'
-        shell: bash
-        run: ${{ inputs.lint_cmd }}
 
       - name: build
         shell: bash
