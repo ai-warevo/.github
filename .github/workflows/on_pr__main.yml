@@ -27,7 +27,6 @@ jobs:
       lint_cmd: 'cd example && make lint'
       build_cmd: 'cd example && make build'
       test_cmd: 'cd example && make test'
-      version_file_path: ''
 
   coverage:
     uses: ai-warevo/.github/.github/workflows/reusable__common__coverage_cpp23.yml@main
