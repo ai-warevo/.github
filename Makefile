@@ -11,7 +11,7 @@
 
 # ═══════════════════════════════════════════════════════════
 #  SYSTEM — do not modify, this is infrastructure
-# ═══════════════════════════════════════════════════════════
+# ════════════════════════════════ ═══════════════════════════
 
 # Release via GitHub Actions workflow_dispatch (no local scripts).
 release:
