@@ -23,7 +23,7 @@ on:
       - 'CMakePresets.json'
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 jobs:
