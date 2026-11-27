@@ -9,30 +9,30 @@ permissions:
 
 jobs:
   resolve_version:
-    uses: ./.github/workflows/reusable__release__resolve_version.yml
+    uses: ai-warevo/.github/.github/workflows/reusable__release__resolve_version.yml@main
 
   build:
     needs: resolve_version
-    uses: ./.github/workflows/reusable__common__build_cpp23.yml
+    uses: ai-warevo/.github/.github/workflows/reusable__common__build_cpp23.yml@main
     with:
       upload_artifacts: true
       new_version_number: ${{ needs.resolve_version.outputs.version }}
       version_file_path: ''
-      lint_cmd: 'true'
-      build_cmd: 'cmake -S example -B example/build/$PRESET -DCMAKE_BUILD_TYPE=Release -DAW_EXAMPLE_BUILD_TESTS=ON && cmake --build example/build/$PRESET --parallel && cmake -E make_directory dist/$PRESET && find example/build/$PRESET -type f \( -name host -o -name host.exe -o -name libplugin.so -o -name plugin.dll \) -exec cmake -E copy {} dist/$PRESET/ \;'
-      test_cmd: 'ctest --test-dir example/build/$PRESET --output-on-failure'
+      lint_cmd: 'cd example && make lint'
+      build_cmd: 'cd example && make build && mkdir -p ../dist/${{ matrix.preset }} && cp -r dist/${{ matrix.preset }}/* ../dist/${{ matrix.preset }}/'
+      test_cmd: 'cd example && make test'
 
   sanitizers:
     needs: resolve_version
-    uses: ./.github/workflows/reusable__common__sanitizers_cpp23.yml
+    uses: ai-warevo/.github/.github/workflows/reusable__common__sanitizers_cpp23.yml@main
     with:
-      build_cmd: 'SANITIZER=address; [[ "$PRESET" == *tsan* ]] && SANITIZER=thread; cmake -S . -B build/$PRESET -DCMAKE_BUILD_TYPE=Debug -DAW_EXAMPLE_BUILD_TESTS=ON -DAW_EXAMPLE_SANITIZE=$SANITIZER && cmake --build build/$PRESET --parallel'
-      test_cmd: 'ctest --test-dir build/$PRESET --output-on-failure'
-      working_directory: example
+      build_cmd: 'cd example && make build'
+      test_cmd: 'cd example && make test'
+      working_directory: .
 
   publish:
     needs: [resolve_version, build, sanitizers]
-    uses: ./.github/workflows/reusable__release__publish.yml
+    uses: ai-warevo/.github/.github/workflows/reusable__release__publish.yml@main
     with:
       version: ${{ needs.resolve_version.outputs.version }}
       release_notes: ${{ needs.resolve_version.outputs.release_notes }}

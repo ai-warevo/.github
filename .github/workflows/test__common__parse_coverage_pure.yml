@@ -24,7 +24,7 @@ jobs:
           EOF
 
       - id: test_xml_valid
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: /tmp/test_cov.xml
 
@@ -53,7 +53,7 @@ jobs:
           EOF
 
       - id: test_color_high
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: /tmp/test_80.xml
 
@@ -82,7 +82,7 @@ jobs:
           EOF
 
       - id: test_color_medium
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: /tmp/test_60.xml
 
@@ -111,7 +111,7 @@ jobs:
           EOF
 
       - id: test_color_low
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: /tmp/test_30.xml
 
@@ -141,7 +141,7 @@ jobs:
           EOF
 
       - id: test_lcov_fallback
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: /tmp/nonexistent.xml
           lcov_path: /tmp/test.lcov

@@ -17,7 +17,7 @@ jobs:
           echo "file2 content" > /tmp/test_1_artifacts/file2.txt
 
       - id: test_1_generate
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'generate'
           artifacts_dir: '/tmp/test_1_artifacts'
@@ -37,7 +37,7 @@ jobs:
 
       # Test 2: verify mode → succeeds with correct checksums
       - id: test_2_verify
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'verify'
           artifacts_dir: '/tmp/test_1_artifacts'
@@ -55,7 +55,7 @@ jobs:
           echo "original content" > /tmp/test_3_artifacts/data.bin
 
       - id: test_3_generate
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'generate'
           artifacts_dir: '/tmp/test_3_artifacts'
@@ -67,7 +67,7 @@ jobs:
           echo "✓ Test 3a passed (checksums generated)"
 
       - id: test_3_verify_good
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'verify'
           artifacts_dir: '/tmp/test_3_artifacts'
@@ -78,7 +78,7 @@ jobs:
           echo "tampered content" > /tmp/test_3_artifacts/data.bin
 
       - id: test_3_verify_bad
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         continue-on-error: true
         with:
           mode: 'verify'
@@ -98,7 +98,7 @@ jobs:
           mkdir -p /tmp/test_4_artifacts
 
       - id: test_4_generate
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'generate'
           artifacts_dir: '/tmp/test_4_artifacts'

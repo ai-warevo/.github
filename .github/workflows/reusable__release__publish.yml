@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: Update VERSION and CHANGELOG.md
-        uses: ./.github/actions/release__write_release_files_io
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_io@main
         with:
           version: ${{ inputs.version }}
           release_notes: ${{ inputs.release_notes }}
@@ -67,7 +67,7 @@ jobs:
 
       - name: Generate Checksums
         id: gen_checksums
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'generate'
           artifacts_dir: 'dist/'
@@ -75,7 +75,7 @@ jobs:
 
       - name: Verify Checksums
         if: steps.gen_checksums.outputs.file_count != '0'
-        uses: ./.github/actions/release__checksums_io
+        uses: ai-warevo/.github/.github/actions/release__checksums_io@main
         with:
           mode: 'verify'
           artifacts_dir: 'dist/'

@@ -17,7 +17,7 @@ jobs:
           git tag -a v1.0.0 -m "Release 1.0.0" HEAD || true
           git tag -a v1.1.0 -m "Release 1.1.0" HEAD || true
       - id: resolve
-        uses: ./.github/actions/release__resolve_next_release_io
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_io@main
         with:
           version_source: 'git_tags'
       - name: Verify git_tags source
@@ -33,7 +33,7 @@ jobs:
       - name: Create VERSION file
         run: echo "2.3.4" > VERSION
       - id: resolve
-        uses: ./.github/actions/release__resolve_next_release_io
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_io@main
         with:
           version_source: 'version_file'
           version_file_path: 'VERSION'
@@ -57,7 +57,7 @@ jobs:
           }
           EOF
       - id: resolve
-        uses: ./.github/actions/release__resolve_next_release_io
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_io@main
         with:
           version_source: 'package_json'
       - name: Verify package_json source
@@ -79,7 +79,7 @@ jobs:
           edition = "2021"
           EOF
       - id: resolve
-        uses: ./.github/actions/release__resolve_next_release_io
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_io@main
         with:
           version_source: 'cargo_toml'
       - name: Verify cargo_toml source
@@ -100,7 +100,7 @@ jobs:
           git config user.name "Test User"
           git tag -a v2.0.0 -m "Release 2.0.0" HEAD || true
       - id: resolve
-        uses: ./.github/actions/release__resolve_next_release_io
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_io@main
       - name: Verify default is git_tags
         run: |
           version="${{ steps.resolve.outputs.version }}"

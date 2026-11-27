@@ -5,22 +5,22 @@ on:
 
 jobs:
   test__release__resolve_next_release_pure:
-    uses: ./.github/workflows/test__release__resolve_next_release_pure.yml
+    uses: ai-warevo/.github/.github/workflows/test__release__resolve_next_release_pure.yml@main
 
   test__release__resolve_next_release_io:
-    uses: ./.github/workflows/test__release__resolve_next_release_io.yml
+    uses: ai-warevo/.github/.github/workflows/test__release__resolve_next_release_io.yml@main
 
   test__release__write_release_files_pure:
-    uses: ./.github/workflows/test__release__write_release_files_pure.yml
+    uses: ai-warevo/.github/.github/workflows/test__release__write_release_files_pure.yml@main
 
   test__common__parse_coverage_pure:
-    uses: ./.github/workflows/test__common__parse_coverage_pure.yml
+    uses: ai-warevo/.github/.github/workflows/test__common__parse_coverage_pure.yml@main
 
   test__common__render_svg_badge_pure:
-    uses: ./.github/workflows/test__common__render_svg_badge_pure.yml
+    uses: ai-warevo/.github/.github/workflows/test__common__render_svg_badge_pure.yml@main
 
   test__release__checksums_pure:
-    uses: ./.github/workflows/test__release__checksums_pure.yml
+    uses: ai-warevo/.github/.github/workflows/test__release__checksums_pure.yml@main
 
   test__release__checksums_io:
-    uses: ./.github/workflows/test__release__checksums_io.yml
+    uses: ai-warevo/.github/.github/workflows/test__release__checksums_io.yml@main

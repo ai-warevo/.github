@@ -11,7 +11,7 @@ jobs:
 
       # Test 1: generate mode with unsorted keys → verify sorted output
       - id: test_1_generate_unsorted
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'generate'
           hashes_json: '{"z.bin": "zzz", "a.bin": "aaa", "m.bin": "mmm"}'
@@ -33,7 +33,7 @@ jobs:
 
       # Test 2: generate mode with empty hashes → empty manifest
       - id: test_2_generate_empty
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'generate'
           hashes_json: '{}'
@@ -51,7 +51,7 @@ jobs:
 
       # Test 3: verify mode with matching manifest and hashes
       - id: test_3_verify_matching
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'verify'
           hashes_json: '{"file1.txt": "abc123", "file2.txt": "def456"}'
@@ -71,7 +71,7 @@ jobs:
 
       # Test 4: verify mode with mismatched hash
       - id: test_4_verify_mismatch
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'verify'
           hashes_json: '{"file.txt": "actual_hash_123"}'
@@ -89,7 +89,7 @@ jobs:
 
       # Test 5: verify mode with missing file in hashes
       - id: test_5_verify_missing
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'verify'
           hashes_json: '{"other.txt": "hash123"}'
@@ -107,7 +107,7 @@ jobs:
 
       # Test 6: verify mode with extra file in hashes (not in manifest)
       - id: test_6_verify_extra
-        uses: ./.github/actions/release__checksums_pure
+        uses: ai-warevo/.github/.github/actions/release__checksums_pure@main
         with:
           mode: 'verify'
           hashes_json: '{"file1.txt": "abc123", "file2.txt": "def456"}'

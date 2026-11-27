@@ -11,7 +11,7 @@ jobs:
 
       # Test 1: No tags, no commits → 0.0.1
       - id: test_1_no_tags_no_commits
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: ''
           changelog_text: ''
@@ -26,7 +26,7 @@ jobs:
 
       # Test 2: Has v1.2.3 tag, no new commits → 1.2.4
       - id: test_2_has_tag_no_commits
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -41,7 +41,7 @@ jobs:
 
       # Test 3: Has v1.2.3 tag, one feat commit → 1.3.0
       - id: test_3_feat_commit
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -56,7 +56,7 @@ jobs:
 
       # Test 4: Breaking change → 2.0.0
       - id: test_4_breaking_change
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -71,7 +71,7 @@ jobs:
 
       # Test 5: Fix commit → 1.2.4
       - id: test_5_fix_commit
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -86,7 +86,7 @@ jobs:
 
       # Test 6: CHANGELOG has 2.0.0, tag has v1.2.3 → 2.0.1
       - id: test_6_changelog_max_version
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: |
@@ -104,7 +104,7 @@ jobs:
 
       # Test 7: Multiple feat + fix → 1.3.0 (feat takes priority)
       - id: test_7_multiple_feat_fix
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -122,7 +122,7 @@ jobs:
 
       # Test 8: Breaking + feat → 2.0.0 (breaking takes priority)
       - id: test_8_breaking_feat
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.2.3'
           changelog_text: ''
@@ -140,7 +140,7 @@ jobs:
 
       # Test 9: Release notes - Added section
       - id: test_9_release_notes_added
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -156,7 +156,7 @@ jobs:
 
       # Test 10: Release notes - Fixed section
       - id: test_10_release_notes_fixed
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -172,7 +172,7 @@ jobs:
 
       # Test 11: Release notes - Breaking section
       - id: test_11_release_notes_breaking
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -188,7 +188,7 @@ jobs:
 
       # Test 12: Release notes - Changed section (refactor)
       - id: test_12_release_notes_changed_refactor
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -204,7 +204,7 @@ jobs:
 
       # Test 13: Release notes - Deprecated section
       - id: test_13_release_notes_deprecated
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -220,7 +220,7 @@ jobs:
 
       # Test 14: Release notes - Removed section
       - id: test_14_release_notes_removed
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -236,7 +236,7 @@ jobs:
 
       # Test 15: Release notes - Security section
       - id: test_15_release_notes_security
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -252,7 +252,7 @@ jobs:
 
       # Test 16: No conventional commits → Maintenance release
       - id: test_16_maintenance_release
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -267,7 +267,7 @@ jobs:
 
       # Test 17: Multiple items in same section
       - id: test_17_multiple_items_section
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -287,7 +287,7 @@ jobs:
 
       # Test 18: Breaking changes (both ! in scope and BREAKING CHANGE footer)
       - id: test_18a_breaking_exclamation
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -303,7 +303,7 @@ jobs:
           echo "$notes" | grep -q "### Breaking" || exit 1
 
       - id: test_18b_breaking_footer
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -324,7 +324,7 @@ jobs:
 
       # Test 20: Commit with scope: feat(auth): add MFA
       - id: test_20_scope_commit
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: 'v1.0.0'
           changelog_text: ''
@@ -341,7 +341,7 @@ jobs:
 
       # Test 21: Multiple tags, pick latest
       - id: test_21_multiple_tags
-        uses: ./.github/actions/release__resolve_next_release_pure
+        uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
         with:
           raw_tags: |
             v2.0.0

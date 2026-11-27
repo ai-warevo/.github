@@ -1,0 +1,185 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "APP_ENABLE_WARNINGS": "ON",
+        "APP_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+
+    {
+      "name": "cfg-debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cfg-release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+
+    {
+      "name": "gcc-15-base",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15"
+      }
+    },
+    {
+      "name": "gcc-15-debug",
+      "inherits": ["gcc-15-base", "cfg-debug"]
+    },
+    {
+      "name": "gcc-15-coverage",
+      "inherits": "gcc-15-debug",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O0 -g --coverage",
+        "CMAKE_EXE_LINKER_FLAGS": "--coverage",
+        "COVERAGE_GCOV_EXECUTABLE": "gcov-15"
+      }
+    },
+    {
+      "name": "gcc-15-release",
+      "inherits": ["gcc-15-base", "cfg-release"]
+    },
+    {
+      "name": "gcc-15-asan",
+      "inherits": "gcc-15-debug",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "gcc-15-tsan",
+      "inherits": "gcc-15-debug",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O1 -g -fno-omit-frame-pointer -fsanitize=thread",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread"
+      }
+    },
+
+    {
+      "name": "clang18-base",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++-18"
+      }
+    },
+    {
+      "name": "clang18-libcxx-base",
+      "hidden": true,
+      "inherits": "clang18-base",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+        "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi"
+      }
+    },
+    {
+      "name": "clang18-libcxx-debug",
+      "inherits": ["clang18-libcxx-base", "cfg-debug"]
+    },
+    {
+      "name": "clang18-libcxx-release",
+      "inherits": ["clang18-libcxx-base", "cfg-release"]
+    },
+
+    {
+      "name": "clang18-libstdcxx-base",
+      "hidden": true,
+      "inherits": "clang18-base",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++"
+      }
+    },
+    {
+      "name": "clang18-libstdcxx-debug",
+      "inherits": ["clang18-libstdcxx-base", "cfg-debug"]
+    },
+    {
+      "name": "clang18-libstdcxx-release",
+      "inherits": ["clang18-libstdcxx-base", "cfg-release"]
+    },
+
+    {
+      "name": "msvc-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "cacheVariables": {}
+    },
+    {
+      "name": "msvc-debug",
+      "inherits": ["msvc-base", "cfg-debug"]
+    },
+    {
+      "name": "msvc-release",
+      "inherits": ["msvc-base", "cfg-release"]
+    }
+  ],
+  "buildPresets": [
+    { "name": "gcc-15-debug", "configurePreset": "gcc-15-debug" },
+    { "name": "gcc-15-coverage", "configurePreset": "gcc-15-coverage" },
+    { "name": "gcc-15-release", "configurePreset": "gcc-15-release" },
+    { "name": "gcc-15-asan", "configurePreset": "gcc-15-asan" },
+    { "name": "gcc-15-tsan", "configurePreset": "gcc-15-tsan" },
+    { "name": "clang18-libcxx-debug", "configurePreset": "clang18-libcxx-debug" },
+    { "name": "clang18-libcxx-release", "configurePreset": "clang18-libcxx-release" },
+    { "name": "clang18-libstdcxx-debug", "configurePreset": "clang18-libstdcxx-debug" },
+    { "name": "clang18-libstdcxx-release", "configurePreset": "clang18-libstdcxx-release" },
+    { "name": "msvc-debug", "configurePreset": "msvc-debug", "configuration": "Debug" },
+    { "name": "msvc-release", "configurePreset": "msvc-release", "configuration": "Release" }
+  ],
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true }
+    },
+    { "name": "gcc-15-debug", "inherits": "test-base", "configurePreset": "gcc-15-debug" },
+    { "name": "gcc-15-coverage", "inherits": "test-base", "configurePreset": "gcc-15-coverage" },
+    { "name": "gcc-15-release", "inherits": "test-base", "configurePreset": "gcc-15-release" },
+    {
+      "name": "gcc-15-asan",
+      "inherits": "test-base",
+      "configurePreset": "gcc-15-asan",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
+    },
+    {
+      "name": "gcc-15-tsan",
+      "inherits": "test-base",
+      "configurePreset": "gcc-15-tsan",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1"
+      }
+    },
+    { "name": "clang18-libcxx-debug", "inherits": "test-base", "configurePreset": "clang18-libcxx-debug" },
+    { "name": "clang18-libcxx-release", "inherits": "test-base", "configurePreset": "clang18-libcxx-release" },
+    { "name": "clang18-libstdcxx-debug", "inherits": "test-base", "configurePreset": "clang18-libstdcxx-debug" },
+    { "name": "clang18-libstdcxx-release", "inherits": "test-base", "configurePreset": "clang18-libstdcxx-release" },
+    { "name": "msvc-debug", "inherits": "test-base", "configurePreset": "msvc-debug", "configuration": "Debug" },
+    { "name": "msvc-release", "inherits": "test-base", "configurePreset": "msvc-release", "configuration": "Release" }
+  ]
+
+}

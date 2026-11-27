@@ -6,7 +6,7 @@ on:
       coverage_cmd:
         type: string
         required: false
-        default: 'make coverage'
+        default: 'cd example && make coverage PRESET=gcc-15-coverage'
         description: 'Command to generate coverage (must produce coverage.xml and htmlcov/)'
       min_coverage:
         type: number
@@ -95,7 +95,7 @@ jobs:
           name: coverage-results
 
       - id: parse_coverage
-        uses: ./.github/actions/common__parse_coverage_pure
+        uses: ai-warevo/.github/.github/actions/common__parse_coverage_pure@main
         with:
           xml_path: ${{ inputs.coverage_xml_path }}
 
@@ -117,7 +117,7 @@ jobs:
       - name: Render Badge
         if: ${{ inputs.deploy_badge }}
         id: render_badge
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'coverage'
           text_right: '${{ fromJson(steps.parse_coverage.outputs.json_output).percent }}%'
@@ -126,7 +126,7 @@ jobs:
 
       - name: Deploy Badge
         if: ${{ inputs.deploy_badge }}
-        uses: ./.github/actions/common__deploy_to_branch_io
+        uses: ai-warevo/.github/.github/actions/common__deploy_to_branch_io@main
         with:
           source_path: coverage.svg
           target_branch: ${{ inputs.badges_branch }}
@@ -134,7 +134,7 @@ jobs:
 
       - name: Deploy Pages
         if: ${{ inputs.deploy_pages }}
-        uses: ./.github/actions/common__deploy_to_branch_io
+        uses: ai-warevo/.github/.github/actions/common__deploy_to_branch_io@main
         with:
           source_path: ${{ inputs.coverage_html_path }}
           target_branch: ${{ inputs.pages_branch }}

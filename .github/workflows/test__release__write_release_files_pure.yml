@@ -11,7 +11,7 @@ jobs:
 
       # Test 1: Empty/nonexistent CHANGELOG → creates with default header
       - id: test_1_empty_changelog
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '1.0.0'
@@ -29,7 +29,7 @@ jobs:
 
       # Test 2: CHANGELOG exists → insert before first existing release
       - id: test_2_insert_before_existing
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: |
             # Changelog
@@ -54,7 +54,7 @@ jobs:
 
       # Test 3: Release block format with version and date
       - id: test_3_format_check
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '2.1.3'
@@ -71,7 +71,7 @@ jobs:
 
       # Test 4: Multiple releases in proper order (newest first)
       - id: test_4_multiple_releases
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: |
             # Changelog
@@ -96,7 +96,7 @@ jobs:
 
       # Test 5: Version content output
       - id: test_5_version_output
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '3.2.1'
@@ -112,7 +112,7 @@ jobs:
 
       # Test 6: Release notes with multiple sections
       - id: test_6_multiple_sections
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '1.5.0'
@@ -145,7 +145,7 @@ jobs:
 
       # Test 7: Empty release_notes still creates section
       - id: test_7_empty_release_notes
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '1.0.0'
@@ -161,7 +161,7 @@ jobs:
 
       # Test 8: First release (no prior releases in CHANGELOG)
       - id: test_8_first_release
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: |
             # Changelog
@@ -181,7 +181,7 @@ jobs:
 
       # Test 9: Special characters in release_notes (preserved)
       - id: test_9_special_chars
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '1.0.0'
@@ -205,7 +205,7 @@ jobs:
 
       # Test 10: Date format YYYY-MM-DD
       - id: test_10_date_format
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: ''
           version: '1.0.0'
@@ -221,7 +221,7 @@ jobs:
 
       # Test 11: Preserve header when inserting releases
       - id: test_11_preserve_header
-        uses: ./.github/actions/release__write_release_files_pure
+        uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
         with:
           existing_changelog_content: |
             # Changelog

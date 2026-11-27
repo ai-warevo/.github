@@ -13,7 +13,7 @@ This repository hosts reusable GitHub Actions workflows and composite actions fo
 | `reusable__*.yml` | Reusable C++23 build, coverage, sanitizer, and release workflows |
 | `test__*.yml` | Test workflows for the reusable composite actions |
 
-The three event wrappers invoke the reusable workflows in this checkout so changes are validated before publication. Consumer repositories should call the published workflows and actions using `ai-warevo/.github` references.
+The three event wrappers call the published reusable workflows from `ai-warevo/.github`, the same way sibling projects consume them. After changing this repository's workflows or actions, validate the change in its CI before consumers adopt the updated `main` revision.
 
 ## C++23 example target
 

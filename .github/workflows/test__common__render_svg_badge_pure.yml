@@ -13,7 +13,7 @@ jobs:
 
       # Test 1: Default parameters
       - id: test_defaults
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'coverage'
           text_right: '85%'
@@ -46,7 +46,7 @@ jobs:
 
       # Test 2: Custom width calculation
       - id: test_custom_width
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           width: '200'
           height: '20'
@@ -79,7 +79,7 @@ jobs:
 
       # Test 3: Custom colors
       - id: test_custom_colors
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'build'
           text_right: 'passing'
@@ -106,7 +106,7 @@ jobs:
 
       # Test 4: Yellow color band
       - id: test_yellow_band
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'coverage'
           text_right: '65%'
@@ -127,7 +127,7 @@ jobs:
 
       # Test 5: Red color band
       - id: test_red_band
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'coverage'
           text_right: '25%'
@@ -148,7 +148,7 @@ jobs:
 
       # Test 6: Relative path creation
       - id: test_relative_path
-        uses: ./.github/actions/common__render_svg_badge_pure
+        uses: ai-warevo/.github/.github/actions/common__render_svg_badge_pure@main
         with:
           text_left: 'rel'
           text_right: 'path'
