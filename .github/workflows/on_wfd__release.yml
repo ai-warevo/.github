@@ -19,7 +19,7 @@ jobs:
       new_version_number: ${{ needs.resolve_version.outputs.version }}
       version_file_path: 'VERSION'
       lint_cmd: 'cd example && make lint'
-      build_cmd: 'cd example && make build && mkdir -p ../dist/${{ matrix.preset }} && cp -r dist/${{ matrix.preset }}/* ../dist/${{ matrix.preset }}/'
+      build_cmd: 'cd example && make build'
       test_cmd: 'cd example && make test'
 
   sanitizers:

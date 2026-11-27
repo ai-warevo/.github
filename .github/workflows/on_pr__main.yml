@@ -18,6 +18,13 @@ on:
       - '.clang-format'
       - '.clang-tidy'
       - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'Makefile'
+      - 'CMakePresets.json'
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   build:
