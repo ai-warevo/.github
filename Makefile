@@ -4,7 +4,7 @@
 # Release process (no local scripts needed):
 #   1. Add categorized entries under ## [Unreleased] in CHANGELOG.md
 #   2. Trigger the release workflow:
-#      make release          # GitHub Actions: workflow_dispatch, derives version
+#      make release          # GitHub Actions: w orkflow_dispatch, derives version
 #      make release VERSION=1.2.3  # GitHub Actions: workflow_dispatch with override
 
 .PHONY: pr-fast weekly-deep release release-dry-run
