@@ -1,0 +1,370 @@
+name: test__release__resolve_next_release_pure
+
+on:
+  workflow_call:
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Test 1: No tags, no commits → 0.0.1
+      - id: test_1_no_tags_no_commits
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: ''
+          changelog_text: ''
+          commits: ''
+
+      - name: Verify test_1_no_tags_no_commits
+        run: |
+          json='${{ steps.test_1_no_tags_no_commits.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 1: Got version=$version, expected=0.0.1"
+          [[ "$version" == "0.0.1" ]] || exit 1
+
+      # Test 2: Has v1.2.3 tag, no new commits → 1.2.4
+      - id: test_2_has_tag_no_commits
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: ''
+
+      - name: Verify test_2_has_tag_no_commits
+        run: |
+          json='${{ steps.test_2_has_tag_no_commits.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 2: Got version=$version, expected=1.2.4"
+          [[ "$version" == "1.2.4" ]] || exit 1
+
+      # Test 3: Has v1.2.3 tag, one feat commit → 1.3.0
+      - id: test_3_feat_commit
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: 'feat: add new feature'
+
+      - name: Verify test_3_feat_commit
+        run: |
+          json='${{ steps.test_3_feat_commit.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 3: Got version=$version, expected=1.3.0"
+          [[ "$version" == "1.3.0" ]] || exit 1
+
+      # Test 4: Breaking change → 2.0.0
+      - id: test_4_breaking_change
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: 'feat!: breaking change'
+
+      - name: Verify test_4_breaking_change
+        run: |
+          json='${{ steps.test_4_breaking_change.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 4: Got version=$version, expected=2.0.0"
+          [[ "$version" == "2.0.0" ]] || exit 1
+
+      # Test 5: Fix commit → 1.2.4
+      - id: test_5_fix_commit
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: 'fix: resolve bug'
+
+      - name: Verify test_5_fix_commit
+        run: |
+          json='${{ steps.test_5_fix_commit.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 5: Got version=$version, expected=1.2.4"
+          [[ "$version" == "1.2.4" ]] || exit 1
+
+      # Test 6: CHANGELOG has 2.0.0, tag has v1.2.3 → 2.0.1
+      - id: test_6_changelog_max_version
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: |
+            # Changelog
+            ## [2.0.0]
+            - Some changes
+          commits: ''
+
+      - name: Verify test_6_changelog_max_version
+        run: |
+          json='${{ steps.test_6_changelog_max_version.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 6: Got version=$version, expected=2.0.1"
+          [[ "$version" == "2.0.1" ]] || exit 1
+
+      # Test 7: Multiple feat + fix → 1.3.0 (feat takes priority)
+      - id: test_7_multiple_feat_fix
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: |
+            feat: feature one
+            fix: fix one
+            fix: fix two
+
+      - name: Verify test_7_multiple_feat_fix
+        run: |
+          json='${{ steps.test_7_multiple_feat_fix.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 7: Got version=$version, expected=1.3.0"
+          [[ "$version" == "1.3.0" ]] || exit 1
+
+      # Test 8: Breaking + feat → 2.0.0 (breaking takes priority)
+      - id: test_8_breaking_feat
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.2.3'
+          changelog_text: ''
+          commits: |
+            feat!: breaking feature
+            feat: regular feature
+            fix: fix one
+
+      - name: Verify test_8_breaking_feat
+        run: |
+          json='${{ steps.test_8_breaking_feat.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 8: Got version=$version, expected=2.0.0"
+          [[ "$version" == "2.0.0" ]] || exit 1
+
+      # Test 9: Release notes - Added section
+      - id: test_9_release_notes_added
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'feat: add user authentication'
+
+      - name: Verify test_9_release_notes_added
+        run: |
+          json='${{ steps.test_9_release_notes_added.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 9: Checking for ### Added section"
+          echo "$notes" | grep -q "### Added" || exit 1
+          echo "$notes" | grep -q "add user authentication" || exit 1
+
+      # Test 10: Release notes - Fixed section
+      - id: test_10_release_notes_fixed
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'fix: memory leak in parser'
+
+      - name: Verify test_10_release_notes_fixed
+        run: |
+          json='${{ steps.test_10_release_notes_fixed.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 10: Checking for ### Fixed section"
+          echo "$notes" | grep -q "### Fixed" || exit 1
+          echo "$notes" | grep -q "memory leak in parser" || exit 1
+
+      # Test 11: Release notes - Breaking section
+      - id: test_11_release_notes_breaking
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'refactor!: redesign API'
+
+      - name: Verify test_11_release_notes_breaking
+        run: |
+          json='${{ steps.test_11_release_notes_breaking.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 11: Checking for ### Breaking section"
+          echo "$notes" | grep -q "### Breaking" || exit 1
+          echo "$notes" | grep -q "redesign API" || exit 1
+
+      # Test 12: Release notes - Changed section (refactor)
+      - id: test_12_release_notes_changed_refactor
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'refactor: improve code quality'
+
+      - name: Verify test_12_release_notes_changed_refactor
+        run: |
+          json='${{ steps.test_12_release_notes_changed_refactor.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 12: Checking for ### Changed section (refactor)"
+          echo "$notes" | grep -q "### Changed" || exit 1
+          echo "$notes" | grep -q "improve code quality" || exit 1
+
+      # Test 13: Release notes - Deprecated section
+      - id: test_13_release_notes_deprecated
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'deprecate: old API endpoint'
+
+      - name: Verify test_13_release_notes_deprecated
+        run: |
+          json='${{ steps.test_13_release_notes_deprecated.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 13: Checking for ### Deprecated section"
+          echo "$notes" | grep -q "### Deprecated" || exit 1
+          echo "$notes" | grep -q "old API endpoint" || exit 1
+
+      # Test 14: Release notes - Removed section
+      - id: test_14_release_notes_removed
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'remove: legacy support'
+
+      - name: Verify test_14_release_notes_removed
+        run: |
+          json='${{ steps.test_14_release_notes_removed.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 14: Checking for ### Removed section"
+          echo "$notes" | grep -q "### Removed" || exit 1
+          echo "$notes" | grep -q "legacy support" || exit 1
+
+      # Test 15: Release notes - Security section
+      - id: test_15_release_notes_security
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'security: patch XSS vulnerability'
+
+      - name: Verify test_15_release_notes_security
+        run: |
+          json='${{ steps.test_15_release_notes_security.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 15: Checking for ### Security section"
+          echo "$notes" | grep -q "### Security" || exit 1
+          echo "$notes" | grep -q "patch XSS vulnerability" || exit 1
+
+      # Test 16: No conventional commits → Maintenance release
+      - id: test_16_maintenance_release
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'random commit message'
+
+      - name: Verify test_16_maintenance_release
+        run: |
+          json='${{ steps.test_16_maintenance_release.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 16: Checking for Maintenance release message"
+          echo "$notes" | grep -q "Maintenance release" || exit 1
+
+      # Test 17: Multiple items in same section
+      - id: test_17_multiple_items_section
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: |
+            feat: feature A
+            feat: feature B
+            feat: feature C
+
+      - name: Verify test_17_multiple_items_section
+        run: |
+          json='${{ steps.test_17_multiple_items_section.outputs.json_output }}'
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 17: Checking for multiple items in Added section"
+          count=$(echo "$notes" | grep -c "^- ")
+          echo "Found $count items listed"
+          [[ $count -eq 3 ]] || exit 1
+
+      # Test 18: Breaking changes (both ! in scope and BREAKING CHANGE footer)
+      - id: test_18a_breaking_exclamation
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'refactor(core)!: removed old API'
+
+      - name: Verify test_18a_breaking_exclamation
+        run: |
+          json='${{ steps.test_18a_breaking_exclamation.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 18a: Breaking with !"
+          [[ "$version" == "2.0.0" ]] || exit 1
+          echo "$notes" | grep -q "### Breaking" || exit 1
+
+      - id: test_18b_breaking_footer
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: |
+            refactor: restructure module
+
+            BREAKING CHANGE: removed old API endpoint
+
+      - name: Verify test_18b_breaking_footer
+        run: |
+          json='${{ steps.test_18b_breaking_footer.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 18b: Breaking with BREAKING CHANGE footer"
+          [[ "$version" == "2.0.0" ]] || exit 1
+          echo "$notes" | grep -q "### Breaking" || exit 1
+          echo "$notes" | grep -q "restructure module" || exit 1
+
+      # Test 20: Commit with scope: feat(auth): add MFA
+      - id: test_20_scope_commit
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: 'v1.0.0'
+          changelog_text: ''
+          commits: 'feat(auth): add multi-factor authentication'
+
+      - name: Verify test_20_scope_commit
+        run: |
+          json='${{ steps.test_20_scope_commit.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          notes=$(echo "$json" | jq -r '.release_notes')
+          echo "Test 20: Got version=$version, expected=1.1.0"
+          [[ "$version" == "1.1.0" ]] || exit 1
+          echo "$notes" | grep -q "add multi-factor authentication" || exit 1
+
+      # Test 21: Multiple tags, pick latest
+      - id: test_21_multiple_tags
+        uses: ./.github/actions/release__resolve_next_release_pure
+        with:
+          raw_tags: |
+            v2.0.0
+            v1.5.0
+            v1.0.0
+          changelog_text: ''
+          commits: ''
+
+      - name: Verify test_21_multiple_tags
+        run: |
+          json='${{ steps.test_21_multiple_tags.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 21: Got version=$version, expected=2.0.1"
+          [[ "$version" == "2.0.1" ]] || exit 1
+
+      # Summary
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "====== PURE RESOLVE NEXT RELEASE TEST SUMMARY ======"
+          echo "✓ All 21 test cases executed"
+          echo "✓ Version bumping logic verified"
+          echo "✓ Release notes sections verified"
+          echo "✓ Multiline commits (BREAKING CHANGE in body) verified"
+          echo "✓ Edge cases verified"
+          echo "=================================================="

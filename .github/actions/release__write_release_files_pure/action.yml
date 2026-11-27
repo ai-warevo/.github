@@ -1,0 +1,36 @@
+name: 'release__write_release_files_pure'
+description: 'Pure function: renders updated CHANGELOG content (no file I/O)'
+inputs:
+  existing_changelog_content:
+    description: 'Existing CHANGELOG.md content (or empty string for new)'
+    required: true
+    default: ''
+  version:
+    description: 'Release version (e.g. 1.2.3)'
+    required: true
+  release_notes:
+    description: 'Release notes content (formatted sections)'
+    required: true
+  release_date:
+    description: 'Release date in YYYY-MM-DD format'
+    required: true
+  preserve_crlf:
+    description: 'Whether to preserve CRLF line endings (true/false)'
+    required: false
+    default: 'false'
+outputs:
+  json_output:
+    value: ${{ steps.render.outputs.json_output }}
+    description: 'JSON object with version and changelog fields'
+runs:
+  using: 'composite'
+  steps:
+    - id: render
+      shell: bash
+      run: python3 "${{ github.action_path }}/pure.py"
+      env:
+        INPUT_EXISTING_CHANGELOG: ${{ inputs.existing_changelog_content }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
+        INPUT_RELEASE_DATE: ${{ inputs.release_date }}
+        INPUT_PRESERVE_CRLF: ${{ inputs.preserve_crlf }}

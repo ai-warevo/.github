@@ -1,0 +1,24 @@
+name: 'common__parse_coverage_pure'
+description: 'Pure function: parse coverage percentage from Cobertura XML or LCOV and determine badge color'
+inputs:
+  xml_path:
+    description: 'Path to Cobertura XML coverage file'
+    required: false
+    default: 'coverage.xml'
+  lcov_path:
+    description: 'Path to LCOV coverage file (fallback if XML is missing)'
+    required: false
+    default: 'coverage.lcov'
+outputs:
+  json_output:
+    value: ${{ steps.parse.outputs.json_output }}
+    description: 'JSON object with percent, color, and github_color fields'
+runs:
+  using: 'composite'
+  steps:
+    - id: parse
+      shell: bash
+      run: python3 "${{ github.action_path }}/pure.py"
+      env:
+        INPUT_XML_PATH: ${{ inputs.xml_path }}
+        INPUT_LCOV_PATH: ${{ inputs.lcov_path }}

@@ -1,0 +1,72 @@
+name: 'release__write_release_files_io'
+description: 'Updates VERSION and CHANGELOG.md files (I/O + pure render)'
+inputs:
+  version:
+    description: 'Release version'
+    required: true
+  release_notes:
+    description: 'Release notes content'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - id: collect
+      shell: bash
+      run: |
+        # Read existing CHANGELOG if it exists
+        if [ -f CHANGELOG.md ]; then
+          CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        else
+          CHANGELOG_CONTENT=""
+        fi
+        
+        # Get today's date
+        RELEASE_DATE=$(date -u +%Y-%m-%d)
+        
+        echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+        echo "preserve_crlf=false" >> $GITHUB_OUTPUT
+    
+    - id: render
+      uses: ai-warevo/.github/.github/actions/release__write_release_files_pure@main
+      with:
+        existing_changelog_content: ${{ steps.collect.outputs.changelog_content }}
+        version: ${{ inputs.version }}
+        release_notes: ${{ inputs.release_notes }}
+        release_date: ${{ steps.collect.outputs.release_date }}
+        preserve_crlf: ${{ steps.collect.outputs.preserve_crlf }}
+    
+    - id: write
+      shell: python
+      env:
+        JSON_OUTPUT: ${{ fromJson(steps.render.outputs.json_output).changelog }}
+        VERSION_OUTPUT: ${{ fromJson(steps.render.outputs.json_output).version }}
+      run: |
+        import os
+        
+        changelog = os.environ.get("JSON_OUTPUT", "")
+        version = os.environ.get("VERSION_OUTPUT", "")
+        
+        if not changelog or not version:
+          print("ERROR: Empty output from pure action", file=__import__('sys').stderr)
+          exit(1)
+        
+        # Write VERSION
+        with open("VERSION", "w", encoding="utf-8") as f:
+          f.write(version + "\n")
+        
+        # Write CHANGELOG.md
+        with open("CHANGELOG.md", "w", encoding="utf-8") as f:
+          f.write(changelog)
+        
+        print(f"✓ Updated VERSION")
+        print(f"✓ Updated CHANGELOG.md")
+
+
+
+
+
+

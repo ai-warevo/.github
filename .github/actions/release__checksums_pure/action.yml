@@ -1,0 +1,78 @@
+name: 'release__checksums_pure'
+description: 'Pure function: formats and verifies SHA256 checksum manifests (no file I/O)'
+
+inputs:
+  mode:
+    description: "'generate' | 'verify'"
+    required: true
+  hashes_json:
+    description: 'JSON object mapping filename -> sha256_hex (e.g. {"b.bin": "abc...", "a.bin": "def..."})'
+    required: true
+  manifest_text:
+    description: 'String content of SHA256SUMS.txt (required for verify mode)'
+    required: false
+    default: ''
+
+outputs:
+  json_output:
+    value: ${{ steps.checksums.outputs.json_output }}
+    description: 'JSON object: generate mode → {manifest, file_count}; verify mode → {valid, checked_count, errors}'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: checksums
+      shell: python
+      run: |
+        import os
+        import json
+
+        mode = os.environ["INPUT_MODE"]
+        hashes = json.loads(os.environ["INPUT_HASHES_JSON"])
+        # GitHub Actions escapes \n as literal backslash-n in with: inputs
+        manifest_text = os.environ.get("INPUT_MANIFEST_TEXT", "").replace("\\n", "\n")
+
+        if mode == "generate":
+            lines = [f"{hashes[name]}  {name}" for name in sorted(hashes)]
+            manifest = "\n".join(lines) + ("\n" if lines else "")
+            output = {"manifest": manifest, "file_count": len(hashes)}
+
+        elif mode == "verify":
+            errors = []
+            checked_count = 0
+            files_in_manifest = set()
+
+            for line_no, line in enumerate(manifest_text.splitlines(), 1):
+                if not line.strip():
+                    continue
+                parts = line.split("  ", 1)
+                if len(parts) != 2 or not parts[1]:
+                    errors.append(f"line {line_no}: malformed (expected 'sha256  filename')")
+                    continue
+                sha256_expected, filename = parts[0], parts[1].lstrip(" ")
+                files_in_manifest.add(filename)
+                if filename not in hashes:
+                    errors.append(f"{filename}: not found in hashes_json")
+                elif hashes[filename] != sha256_expected:
+                    errors.append(f"{filename}: hash mismatch (expected {sha256_expected}, got {hashes[filename]})")
+                else:
+                    checked_count += 1
+
+            for filename in hashes:
+                if filename not in files_in_manifest:
+                    errors.append(f"{filename}: missing from manifest")
+
+            output = {"valid": not errors, "checked_count": checked_count, "errors": errors}
+
+        else:
+            raise SystemExit(f"::error::Invalid mode: {mode} (expected 'generate' or 'verify')")
+
+        json_str = json.dumps(output, ensure_ascii=False)
+
+        if gh_out := os.environ.get("GITHUB_OUTPUT"):
+            with open(gh_out, "a", encoding="utf-8") as f:
+                f.write(f"json_output={json_str}\n")
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_HASHES_JSON: ${{ inputs.hashes_json }}
+        INPUT_MANIFEST_TEXT: ${{ inputs.manifest_text }}

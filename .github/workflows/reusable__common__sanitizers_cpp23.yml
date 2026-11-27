@@ -1,0 +1,73 @@
+name: reusable__common__sanitizers_cpp23
+
+on:
+  workflow_call:
+    inputs:
+      build_cmd:
+        type: string
+        required: false
+        default: 'make build'
+        description: 'Command to build the project with sanitizer flags'
+      test_cmd:
+        type: string
+        required: false
+        default: 'make test'
+        description: 'Command to run tests under sanitizer'
+      apt_packages:
+        type: string
+        required: false
+        default: ''
+        description: 'Space-separated list of extra apt packages to install (e.g. "libssl-dev libsqlite3-dev")'
+      setup_cmd:
+        type: string
+        required: false
+        default: ''
+        description: 'Optional custom setup command to run before build'
+      working_directory:
+        type: string
+        required: false
+        default: '.'
+        description: 'Project directory used to run build and test commands'
+
+jobs:
+  sanitizers:
+    name: Sanitizer (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [gcc-15-asan, gcc-15-tsan]
+
+    runs-on: ubuntu-24.04
+    env:
+      PRESET: ${{ matrix.preset }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GCC 15, Ninja & extra apt packages
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-15 g++-15 ninja-build ${{ inputs.apt_packages }}
+
+      - name: Custom setup
+        if: inputs.setup_cmd != ''
+        run: ${{ inputs.setup_cmd }}
+
+      - name: Fix ASLR for TSan/ASan on Ubuntu 24.04
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Build
+        working-directory: ${{ inputs.working_directory }}
+        run: ${{ inputs.build_cmd }}
+
+      - name: Test
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          if setarch $(uname -m) -R true 2>/dev/null; then
+            setarch $(uname -m) -R ${{ inputs.test_cmd }}
+          else
+            ${{ inputs.test_cmd }}
+          fi

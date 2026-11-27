@@ -1,0 +1,144 @@
+name: reusable__common__coverage_cpp23
+
+on:
+  workflow_call:
+    inputs:
+      coverage_cmd:
+        type: string
+        required: false
+        default: 'make coverage'
+        description: 'Command to generate coverage (must produce coverage.xml and htmlcov/)'
+      min_coverage:
+        type: number
+        required: false
+        default: 30
+        description: 'Minimum coverage percentage required (0 = disabled)'
+      deploy_pages:
+        type: boolean
+        required: false
+        default: false
+        description: 'Deploy HTML report to GitHub Pages'
+      deploy_badge:
+        type: boolean
+        required: false
+        default: false
+        description: 'Deploy coverage badge SVG to separate branch'
+      pages_branch:
+        type: string
+        required: false
+        default: 'gh-pages'
+        description: 'Target branch for GitHub Pages deployment'
+      badges_branch:
+        type: string
+        required: false
+        default: 'badges'
+        description: 'Target branch for badge SVG deployment'
+      working_directory:
+        type: string
+        required: false
+        default: '.'
+        description: 'Project directory used to run the coverage command'
+      coverage_artifacts_path:
+        type: string
+        required: false
+        default: |
+          coverage.xml
+          htmlcov/
+        description: 'Coverage files to upload from the build job'
+      coverage_xml_path:
+        type: string
+        required: false
+        default: 'coverage.xml'
+        description: 'Coverage XML path after artifact download'
+      coverage_html_path:
+        type: string
+        required: false
+        default: 'htmlcov'
+        description: 'Coverage HTML path after artifact download'
+
+jobs:
+  build_and_cover:
+    name: Build & Coverage
+    runs-on: ubuntu-24.04
+    container: ghcr.io/ai-warevo/ci-cpp23:gcc-15
+    env:
+      PRESET: gcc-15-coverage
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Coverage
+        shell: bash
+        working-directory: ${{ inputs.working_directory }}
+        run: ${{ inputs.coverage_cmd }}
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-results
+          path: ${{ inputs.coverage_artifacts_path }}
+
+  report_and_deploy:
+    name: Report & Deploy
+    needs: build_and_cover
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-results
+
+      - id: parse_coverage
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: ${{ inputs.coverage_xml_path }}
+
+      - name: Threshold Check
+        if: ${{ inputs.min_coverage > 0 }}
+        shell: bash
+        run: |
+          PERCENT=$(echo '${{ steps.parse_coverage.outputs.json_output }}' | jq -r '.percent')
+          MIN_COVERAGE=${{ inputs.min_coverage }}
+
+          echo "Coverage: $PERCENT% (required: $MIN_COVERAGE%)"
+
+          if (( PERCENT < MIN_COVERAGE )); then
+            echo "❌ Coverage $PERCENT% is below minimum $MIN_COVERAGE%" >&2
+            exit 1
+          fi
+          echo "✓ Coverage threshold met"
+
+      - name: Render Badge
+        if: ${{ inputs.deploy_badge }}
+        id: render_badge
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'coverage'
+          text_right: '${{ fromJson(steps.parse_coverage.outputs.json_output).percent }}%'
+          bg_color_right: '${{ fromJson(steps.parse_coverage.outputs.json_output).color }}'
+          filename: 'coverage.svg'
+
+      - name: Deploy Badge
+        if: ${{ inputs.deploy_badge }}
+        uses: ./.github/actions/common__deploy_to_branch_io
+        with:
+          source_path: coverage.svg
+          target_branch: ${{ inputs.badges_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy Pages
+        if: ${{ inputs.deploy_pages }}
+        uses: ./.github/actions/common__deploy_to_branch_io
+        with:
+          source_path: ${{ inputs.coverage_html_path }}
+          target_branch: ${{ inputs.pages_branch }}
+          target_folder: .
+          nojekyll: 'true'
+          clean_target: 'true'
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,26 @@
+name: on_wfd__actions_test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test__release__resolve_next_release_pure:
+    uses: ./.github/workflows/test__release__resolve_next_release_pure.yml
+
+  test__release__resolve_next_release_io:
+    uses: ./.github/workflows/test__release__resolve_next_release_io.yml
+
+  test__release__write_release_files_pure:
+    uses: ./.github/workflows/test__release__write_release_files_pure.yml
+
+  test__common__parse_coverage_pure:
+    uses: ./.github/workflows/test__common__parse_coverage_pure.yml
+
+  test__common__render_svg_badge_pure:
+    uses: ./.github/workflows/test__common__render_svg_badge_pure.yml
+
+  test__release__checksums_pure:
+    uses: ./.github/workflows/test__release__checksums_pure.yml
+
+  test__release__checksums_io:
+    uses: ./.github/workflows/test__release__checksums_io.yml

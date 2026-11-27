@@ -1,0 +1,27 @@
+name: 'release__resolve_next_release_pure'
+description: 'Pure function: resolves next SemVer version and release notes from git tags and CHANGELOG'
+inputs:
+  raw_tags:
+    description: 'Raw git tags output (one tag per line, sorted by -v:refname)'
+    required: true
+  changelog_text:
+    description: 'Content of CHANGELOG.md file (or empty string)'
+    required: true
+  commits:
+    description: 'Git commit messages (one per line, from git log --pretty=format:%s)'
+    required: true
+    default: ''
+outputs:
+  json_output:
+    value: ${{ steps.resolve.outputs.json_output }}
+    description: 'JSON object with version and release_notes fields'
+runs:
+  using: 'composite'
+  steps:
+    - id: resolve
+      shell: bash
+      run: python3 "${{ github.action_path }}/pure.py"
+      env:
+        INPUT_RAW_TAGS: ${{ inputs.raw_tags }}
+        INPUT_CHANGELOG_TEXT: ${{ inputs.changelog_text }}
+        INPUT_COMMITS: ${{ inputs.commits }}

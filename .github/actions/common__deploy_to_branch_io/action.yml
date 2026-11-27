@@ -1,0 +1,130 @@
+name: 'common__deploy_to_branch_io'
+description: 'Deploy file or directory to target git branch (badges, gh-pages, etc.)'
+inputs:
+  source_path:
+    description: 'Source file or directory to deploy (relative to workspace)'
+    required: true
+  target_branch:
+    description: 'Target branch name (e.g., badges, gh-pages)'
+    required: true
+  target_folder:
+    description: 'Folder in target branch where to place files'
+    required: false
+    default: '.'
+  target_filename:
+    description: 'Optional: rename single file when deploying'
+    required: false
+    default: ''
+  nojekyll:
+    description: 'Create .nojekyll file to disable Jekyll processing'
+    required: false
+    default: 'false'
+  clean_target:
+    description: 'Clear existing files in target_folder before copying (if target_folder != .)'
+    required: false
+    default: 'false'
+  token:
+    description: 'GitHub token for authentication'
+    required: false
+    default: ''
+  git_user_name:
+    description: 'Git user name for commits'
+    required: false
+    default: 'github-actions[bot]'
+  git_user_email:
+    description: 'Git user email for commits'
+    required: false
+    default: 'github-actions[bot]@users.noreply.github.com'
+runs:
+  using: 'composite'
+  steps:
+    - id: deploy
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        SOURCE_PATH="${{ inputs.source_path }}"
+        TARGET_BRANCH="${{ inputs.target_branch }}"
+        TARGET_FOLDER="${{ inputs.target_folder }}"
+        TARGET_FILENAME="${{ inputs.target_filename }}"
+        NOJEKYLL="${{ inputs.nojekyll }}"
+        CLEAN_TARGET="${{ inputs.clean_target }}"
+        TOKEN="${{ inputs.token }}"
+        GIT_USER_NAME="${{ inputs.git_user_name }}"
+        GIT_USER_EMAIL="${{ inputs.git_user_email }}"
+        
+        # Fallback to github.token if not provided
+        if [[ -z "$TOKEN" ]]; then
+          TOKEN="${{ github.token }}"
+        fi
+        
+        if [[ ! -e "$SOURCE_PATH" ]]; then
+          echo "ERROR: source_path does not exist: $SOURCE_PATH" >&2
+          exit 1
+        fi
+        
+        # Isolate source in temp directory
+        TEMP_DIR=$(mktemp -d)
+        trap "rm -rf '$TEMP_DIR'" EXIT
+        
+        # Create auth URL
+        REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+        AUTH_URL=$(echo "$REPO_URL" | sed "s|^https://|https://x-access-token:${TOKEN}@|")
+        
+        # Clone target branch
+        cd "$TEMP_DIR"
+        git init
+        git remote add origin "$AUTH_URL"
+        git config user.name "$GIT_USER_NAME"
+        git config user.email "$GIT_USER_EMAIL"
+        
+        # Check if branch exists
+        if git ls-remote --heads origin "$TARGET_BRANCH" | grep -q "$TARGET_BRANCH"; then
+          # Fetch existing branch
+          git fetch origin "$TARGET_BRANCH:$TARGET_BRANCH"
+          git checkout "$TARGET_BRANCH"
+        else
+          # Create orphan branch
+          git checkout --orphan "$TARGET_BRANCH"
+          git rm -rf . || true
+        fi
+        
+        # Clean workspace
+        git clean -fd
+        
+        # Create .nojekyll if requested
+        if [[ "$NOJEKYLL" == "true" ]]; then
+          touch .nojekyll
+        fi
+        
+        # Clear target folder if requested
+        if [[ "$CLEAN_TARGET" == "true" ]] && [[ "$TARGET_FOLDER" != "." ]]; then
+          rm -rf "$TARGET_FOLDER"
+          mkdir -p "$TARGET_FOLDER"
+        fi
+        
+        # Copy source to target
+        if [[ -d "${{ github.workspace }}/$SOURCE_PATH" ]]; then
+          # Directory: copy contents
+          mkdir -p "$TARGET_FOLDER"
+          cp -r "${{ github.workspace }}/$SOURCE_PATH"/* "$TARGET_FOLDER/" 2>/dev/null || true
+        else
+          # File: copy with optional rename
+          mkdir -p "$TARGET_FOLDER"
+          if [[ -n "$TARGET_FILENAME" ]]; then
+            cp "${{ github.workspace }}/$SOURCE_PATH" "$TARGET_FOLDER/$TARGET_FILENAME"
+          else
+            cp "${{ github.workspace }}/$SOURCE_PATH" "$TARGET_FOLDER/"
+          fi
+        fi
+        
+        # Commit and push
+        git add -A
+        if git diff --cached --quiet; then
+          echo "⚠ No changes to commit"
+          exit 0
+        fi
+        
+        git commit -m "chore: deploy to $TARGET_BRANCH" || true
+        git push -u origin "$TARGET_BRANCH"
+        echo "✓ Deployed to $TARGET_BRANCH"

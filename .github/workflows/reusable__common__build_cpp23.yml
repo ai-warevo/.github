@@ -1,0 +1,105 @@
+name: reusable__common__build_cpp23
+
+on:
+  workflow_call:
+    inputs:
+      upload_artifacts:
+        type: boolean
+        required: true
+        default: false
+        description: 'Whether to upload build artifacts from dist/'
+      new_version_number:
+        type: string
+        required: false
+        default: '0.0.1'
+        description: 'Version number to assign to the build'
+      lint_cmd:
+        type: string
+        required: false
+        default: 'make lint'
+        description: 'Command to run code linting and style checks'
+      build_cmd:
+        type: string
+        required: false
+        default: 'make build'
+        description: 'Command to build the project'
+      test_cmd:
+        type: string
+        required: false
+        default: 'make test'
+        description: 'Command to run the test suite'
+      version_file_path:
+        type: string
+        required: false
+        default: 'VERSION'
+        description: 'Path to the version file to set for the build'
+
+jobs:
+  build:
+    name: Build (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: gcc-15-debug
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:gcc-15
+          - preset: gcc-15-release
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:gcc-15
+          - preset: clang18-libcxx-debug
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libcxx
+          - preset: clang18-libcxx-release
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libcxx
+          - preset: clang18-libstdcxx-debug
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libstdc
+          - preset: clang18-libstdcxx-release
+            os: ubuntu-24.04
+            container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libstdc
+          - preset: msvc-debug
+            os: windows-latest
+            container: ''
+          - preset: msvc-release
+            os: windows-latest
+            container: ''
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    env:
+      PRESET: ${{ matrix.preset }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare
+        if: inputs.version_file_path != ''
+        shell: bash
+        run: echo "${{ inputs.new_version_number }}" > "${{ inputs.version_file_path }}"
+
+      - name: Setup MSVC
+        if: startsWith(matrix.preset, 'msvc')
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: lint
+        if: matrix.preset == 'clang18-libcxx-debug'
+        shell: bash
+        run: ${{ inputs.lint_cmd }}
+
+      - name: build
+        shell: bash
+        run: ${{ inputs.build_cmd }}
+
+      - name: test
+        shell: bash
+        run: ${{ inputs.test_cmd }}
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.upload_artifacts
+        with:
+          name: common__build_${{ matrix.preset }}
+          path: dist/

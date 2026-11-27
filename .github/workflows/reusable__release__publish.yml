@@ -1,0 +1,122 @@
+name: reusable__release__publish
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      release_notes:
+        type: string
+        required: true
+      git_user_name:
+        type: string
+        required: false
+        default: 'github-actions[bot]'
+      git_user_email:
+        type: string
+        required: false
+        default: 'github-actions[bot]@users.noreply.github.com'
+      commit_message_prefix:
+        type: string
+        required: false
+        default: 'chore(release)'
+      release_notes_footer:
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update VERSION and CHANGELOG.md
+        uses: ./.github/actions/release__write_release_files_io
+        with:
+          version: ${{ inputs.version }}
+          release_notes: ${{ inputs.release_notes }}
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Flatten dist artifacts
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p dist
+          find dist -mindepth 2 -type f | while IFS= read -r file; do
+            rel="${file#dist/}"
+            preset="${rel%%/*}"
+            base="$(basename "$file")"
+            if [[ "$base" == *.* ]]; then
+              mv "$file" "dist/${base%.*}-v${VERSION}-${preset}.${base##*.}"
+            else
+              mv "$file" "dist/${base}-v${VERSION}-${preset}"
+            fi
+          done
+          find dist -mindepth 1 -type d -empty -delete
+
+      - name: Generate Checksums
+        id: gen_checksums
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'generate'
+          artifacts_dir: 'dist/'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify Checksums
+        if: steps.gen_checksums.outputs.file_count != '0'
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'verify'
+          artifacts_dir: 'dist/'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Remove Empty Checksums File
+        if: steps.gen_checksums.outputs.file_count == '0'
+        run: |
+          rm -f dist/SHA256SUMS.txt
+
+      - name: Commit, Tag, Push & Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          GIT_USER_NAME: ${{ inputs.git_user_name }}
+          GIT_USER_EMAIL: ${{ inputs.git_user_email }}
+          COMMIT_MSG_PREFIX: ${{ inputs.commit_message_prefix }}
+          RELEASE_NOTES_FOOTER: ${{ inputs.release_notes_footer }}
+        run: |
+          git config user.name "$GIT_USER_NAME"
+          git config user.email "$GIT_USER_EMAIL"
+
+          git add VERSION CHANGELOG.md
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "${COMMIT_MSG_PREFIX}: ${VERSION}"
+          fi
+
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin main --follow-tags
+
+          # Combine release notes with footer
+          if [ -n "$RELEASE_NOTES_FOOTER" ]; then
+            NOTES="$(printf '%s\n\n%s' "$RELEASE_NOTES" "$RELEASE_NOTES_FOOTER")"
+          else
+            NOTES="$RELEASE_NOTES"
+          fi
+
+          # Upload only files, skip directories
+          gh release create "v${VERSION}" --title "v${VERSION}" --notes "$NOTES"
+
+          if [ -d dist ] && [ "$(find dist -type f | wc -l)" -gt 0 ]; then
+            find dist -type f -exec gh release upload "v${VERSION}" {} \;
+          fi

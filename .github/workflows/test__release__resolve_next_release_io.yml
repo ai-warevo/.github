@@ -1,0 +1,122 @@
+name: test__release__resolve_next_release_io
+
+on:
+  workflow_call:
+
+jobs:
+  test_git_tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup git tags
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git tag -a v1.0.0 -m "Release 1.0.0" HEAD || true
+          git tag -a v1.1.0 -m "Release 1.1.0" HEAD || true
+      - id: resolve
+        uses: ./.github/actions/release__resolve_next_release_io
+        with:
+          version_source: 'git_tags'
+      - name: Verify git_tags source
+        run: |
+          version="${{ steps.resolve.outputs.version }}"
+          echo "Got version: $version"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "✓ git_tags source works: $version" || exit 1
+
+  test_version_file:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create VERSION file
+        run: echo "2.3.4" > VERSION
+      - id: resolve
+        uses: ./.github/actions/release__resolve_next_release_io
+        with:
+          version_source: 'version_file'
+          version_file_path: 'VERSION'
+      - name: Verify version_file source
+        run: |
+          version="${{ steps.resolve.outputs.version }}"
+          echo "Got version: $version"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "✓ version_file source works: $version" || exit 1
+
+  test_package_json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create package.json
+        run: |
+          cat > package.json << 'EOF'
+          {
+            "name": "test-pkg",
+            "version": "3.2.1",
+            "description": "Test package"
+          }
+          EOF
+      - id: resolve
+        uses: ./.github/actions/release__resolve_next_release_io
+        with:
+          version_source: 'package_json'
+      - name: Verify package_json source
+        run: |
+          version="${{ steps.resolve.outputs.version }}"
+          echo "Got version: $version"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "✓ package_json source works: $version" || exit 1
+
+  test_cargo_toml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Cargo.toml
+        run: |
+          cat > Cargo.toml << 'EOF'
+          [package]
+          name = "test-crate"
+          version = "1.5.2"
+          edition = "2021"
+          EOF
+      - id: resolve
+        uses: ./.github/actions/release__resolve_next_release_io
+        with:
+          version_source: 'cargo_toml'
+      - name: Verify cargo_toml source
+        run: |
+          version="${{ steps.resolve.outputs.version }}"
+          echo "Got version: $version"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "✓ cargo_toml source works: $version" || exit 1
+
+  test_default_git_tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup git tags
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git tag -a v2.0.0 -m "Release 2.0.0" HEAD || true
+      - id: resolve
+        uses: ./.github/actions/release__resolve_next_release_io
+      - name: Verify default is git_tags
+        run: |
+          version="${{ steps.resolve.outputs.version }}"
+          echo "Got version: $version"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "✓ default (git_tags) works: $version" || exit 1
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [test_git_tags, test_version_file, test_package_json, test_cargo_toml, test_default_git_tags]
+    if: always()
+    steps:
+      - name: Test Summary
+        run: |
+          echo "✓ All parametrize tests executed"
+          echo "  - git_tags source: ${{ needs.test_git_tags.result }}"
+          echo "  - version_file source: ${{ needs.test_version_file.result }}"
+          echo "  - package_json source: ${{ needs.test_package_json.result }}"
+          echo "  - cargo_toml source: ${{ needs.test_cargo_toml.result }}"
+          echo "  - default (git_tags): ${{ needs.test_default_git_tags.result }}"

@@ -1,0 +1,54 @@
+name: 'common__render_svg_badge_pure'
+description: 'Pure function: generate SVG badge with dynamic width and color'
+inputs:
+  width:
+    description: 'Badge width in pixels'
+    required: false
+    default: '120'
+  height:
+    description: 'Badge height in pixels'
+    required: false
+    default: '20'
+  text_left:
+    description: 'Left segment text (label)'
+    required: false
+    default: 'coverage'
+  text_right:
+    description: 'Right segment text (value)'
+    required: false
+    default: '80%'
+  bg_color_left:
+    description: 'Left segment background color (hex)'
+    required: false
+    default: '#555'
+  bg_color_right:
+    description: 'Right segment background color (hex)'
+    required: false
+    default: '#44cc11'
+  text_color:
+    description: 'Text color (hex)'
+    required: false
+    default: '#fff'
+  filename:
+    description: 'Output filename (relative path)'
+    required: false
+    default: 'badge.svg'
+outputs:
+  json_output:
+    value: ${{ steps.render.outputs.json_output }}
+    description: 'JSON object with badge_path and svg fields'
+runs:
+  using: 'composite'
+  steps:
+    - id: render
+      shell: bash
+      run: python3 "${{ github.action_path }}/pure.py"
+      env:
+        INPUT_WIDTH: ${{ inputs.width }}
+        INPUT_HEIGHT: ${{ inputs.height }}
+        INPUT_TEXT_LEFT: ${{ inputs.text_left }}
+        INPUT_TEXT_RIGHT: ${{ inputs.text_right }}
+        INPUT_BG_COLOR_LEFT: ${{ inputs.bg_color_left }}
+        INPUT_BG_COLOR_RIGHT: ${{ inputs.bg_color_right }}
+        INPUT_TEXT_COLOR: ${{ inputs.text_color }}
+        INPUT_FILENAME: ${{ inputs.filename }}

@@ -1,0 +1,125 @@
+name: test__release__checksums_io
+
+on:
+  workflow_call:
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Test 1: generate mode → creates SHA256SUMS.txt
+      - id: test_1_setup
+        run: |
+          mkdir -p /tmp/test_1_artifacts
+          echo "file1 content" > /tmp/test_1_artifacts/file1.txt
+          echo "file2 content" > /tmp/test_1_artifacts/file2.txt
+
+      - id: test_1_generate
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'generate'
+          artifacts_dir: '/tmp/test_1_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify test_1_generate
+        run: |
+          file_count="${{ steps.test_1_generate.outputs.file_count }}"
+          checksums_file="${{ steps.test_1_generate.outputs.checksums_file }}"
+          echo "Test 1: generate mode"
+          [[ "$file_count" == "2" ]] || { echo "Expected file_count=2, got $file_count"; exit 1; }
+          [[ "$checksums_file" == "SHA256SUMS.txt" ]] || { echo "Expected checksums_file=SHA256SUMS.txt"; exit 1; }
+          [ -f "/tmp/test_1_artifacts/SHA256SUMS.txt" ] || { echo "SHA256SUMS.txt not found"; exit 1; }
+          grep -q "file1.txt" "/tmp/test_1_artifacts/SHA256SUMS.txt" || { echo "file1.txt not in manifest"; exit 1; }
+          grep -q "file2.txt" "/tmp/test_1_artifacts/SHA256SUMS.txt" || { echo "file2.txt not in manifest"; exit 1; }
+          echo "✓ Test 1 passed"
+
+      # Test 2: verify mode → succeeds with correct checksums
+      - id: test_2_verify
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'verify'
+          artifacts_dir: '/tmp/test_1_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify test_2_verify
+        run: |
+          echo "Test 2: verify mode with correct checksums"
+          echo "✓ Test 2 passed (action succeeded)"
+
+      # Test 3: tamper a file, then verify should fail
+      - id: test_3_setup
+        run: |
+          mkdir -p /tmp/test_3_artifacts
+          echo "original content" > /tmp/test_3_artifacts/data.bin
+
+      - id: test_3_generate
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'generate'
+          artifacts_dir: '/tmp/test_3_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify test_3_initial_verify
+        run: |
+          echo "Test 3a: initial verify before tampering"
+          echo "✓ Test 3a passed (checksums generated)"
+
+      - id: test_3_verify_good
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'verify'
+          artifacts_dir: '/tmp/test_3_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - id: test_3_tamper
+        run: |
+          echo "tampered content" > /tmp/test_3_artifacts/data.bin
+
+      - id: test_3_verify_bad
+        uses: ./.github/actions/release__checksums_io
+        continue-on-error: true
+        with:
+          mode: 'verify'
+          artifacts_dir: '/tmp/test_3_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify test_3_tampering_detected
+        run: |
+          outcome="${{ steps.test_3_verify_bad.outcome }}"
+          echo "Test 3b: verify after tampering"
+          [[ "$outcome" == "failure" ]] || { echo "Expected failure, got $outcome"; exit 1; }
+          echo "✓ Test 3b passed (tampering detected)"
+
+      # Test 4: empty directory → creates empty checksums file
+      - id: test_4_setup
+        run: |
+          mkdir -p /tmp/test_4_artifacts
+
+      - id: test_4_generate
+        uses: ./.github/actions/release__checksums_io
+        with:
+          mode: 'generate'
+          artifacts_dir: '/tmp/test_4_artifacts'
+          checksums_file: 'SHA256SUMS.txt'
+
+      - name: Verify test_4_empty
+        run: |
+          file_count="${{ steps.test_4_generate.outputs.file_count }}"
+          echo "Test 4: empty directory"
+          [[ "$file_count" == "0" ]] || { echo "Expected file_count=0, got $file_count"; exit 1; }
+          [ -f "/tmp/test_4_artifacts/SHA256SUMS.txt" ] || { echo "SHA256SUMS.txt not created"; exit 1; }
+          [ ! -s "/tmp/test_4_artifacts/SHA256SUMS.txt" ] || { echo "SHA256SUMS.txt should be empty"; exit 1; }
+          echo "✓ Test 4 passed"
+
+      # Summary
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "====== IO CHECKSUMS TEST SUMMARY ======"
+          echo "✓ generate: creates SHA256SUMS.txt with correct format"
+          echo "✓ verify: succeeds with correct checksums"
+          echo "✓ tamper detection: fails when file is modified"
+          echo "✓ empty directory: creates empty checksums file"
+          echo "======================================="

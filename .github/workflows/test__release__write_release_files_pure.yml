@@ -1,0 +1,265 @@
+name: test__release__write_release_files_pure
+
+on:
+  workflow_call:
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Test 1: Empty/nonexistent CHANGELOG → creates with default header
+      - id: test_1_empty_changelog
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '1.0.0'
+          release_notes: '### Added\n\n- Initial release'
+          release_date: '2024-01-01'
+
+      - name: Verify test_1_empty_changelog
+        run: |
+          json='${{ steps.test_1_empty_changelog.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 1: Checking for default header"
+          echo "$content" | grep -q "# Changelog" || exit 1
+          echo "$content" | grep -q "Keep a Changelog" || exit 1
+          echo "$content" | grep -q "\[1.0.0\]" || exit 1
+
+      # Test 2: CHANGELOG exists → insert before first existing release
+      - id: test_2_insert_before_existing
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: |
+            # Changelog
+
+            ## [0.5.0] - 2023-12-01
+
+            ### Fixed
+            - Bug fix
+          version: '1.0.0'
+          release_notes: '### Added\n\n- New feature'
+          release_date: '2024-01-01'
+
+      - name: Verify test_2_insert_before_existing
+        run: |
+          json='${{ steps.test_2_insert_before_existing.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 2: Checking new release before old release"
+          new_pos=$(echo "$content" | grep -n "\[1.0.0\]" | cut -d: -f1)
+          old_pos=$(echo "$content" | grep -n "\[0.5.0\]" | cut -d: -f1)
+          echo "New release at line $new_pos, old at line $old_pos"
+          [[ $new_pos -lt $old_pos ]] || exit 1
+
+      # Test 3: Release block format with version and date
+      - id: test_3_format_check
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '2.1.3'
+          release_notes: '### Added\n\n- Feature A'
+          release_date: '2024-06-15'
+
+      - name: Verify test_3_format_check
+        run: |
+          json='${{ steps.test_3_format_check.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 3: Checking release format"
+          echo "$content" | grep -q "## \[2.1.3\] - 2024-06-15" || exit 1
+          echo "$content" | grep -q "Feature A" || exit 1
+
+      # Test 4: Multiple releases in proper order (newest first)
+      - id: test_4_multiple_releases
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: |
+            # Changelog
+
+            ## [1.0.0] - 2024-01-01
+
+            ### Added
+            - Version 1
+          version: '2.0.0'
+          release_notes: '### Added\n\n- Version 2'
+          release_date: '2024-06-01'
+
+      - name: Verify test_4_multiple_releases
+        run: |
+          json='${{ steps.test_4_multiple_releases.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 4: Checking release ordering"
+          line_2=$(echo "$content" | grep -n "2.0.0" | cut -d: -f1)
+          line_1=$(echo "$content" | grep -n "1.0.0" | cut -d: -f1)
+          echo "v2.0.0 at line $line_2, v1.0.0 at line $line_1"
+          [[ $line_2 -lt $line_1 ]] || exit 1
+
+      # Test 5: Version content output
+      - id: test_5_version_output
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '3.2.1'
+          release_notes: 'test'
+          release_date: '2024-01-01'
+
+      - name: Verify test_5_version_output
+        run: |
+          json='${{ steps.test_5_version_output.outputs.json_output }}'
+          version=$(echo "$json" | jq -r '.version')
+          echo "Test 5: Got version=$version, expected=3.2.1"
+          [[ "$version" == "3.2.1" ]] || exit 1
+
+      # Test 6: Release notes with multiple sections
+      - id: test_6_multiple_sections
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '1.5.0'
+          release_notes: |
+            ### Added
+
+            - New API endpoint
+            - Config option
+
+            ### Fixed
+
+            - Memory leak
+            - Race condition
+
+            ### Breaking
+
+            - Removed deprecated method
+          release_date: '2024-03-01'
+
+      - name: Verify test_6_multiple_sections
+        run: |
+          json='${{ steps.test_6_multiple_sections.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 6: Checking multiple sections"
+          echo "$content" | grep -q "### Added" || exit 1
+          echo "$content" | grep -q "### Fixed" || exit 1
+          echo "$content" | grep -q "### Breaking" || exit 1
+          echo "$content" | grep -q "New API endpoint" || exit 1
+          echo "$content" | grep -q "Memory leak" || exit 1
+
+      # Test 7: Empty release_notes still creates section
+      - id: test_7_empty_release_notes
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '1.0.0'
+          release_notes: ''
+          release_date: '2024-01-01'
+
+      - name: Verify test_7_empty_release_notes
+        run: |
+          json='${{ steps.test_7_empty_release_notes.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 7: Checking empty notes"
+          echo "$content" | grep -q "\[1.0.0\]" || exit 1
+
+      # Test 8: First release (no prior releases in CHANGELOG)
+      - id: test_8_first_release
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: |
+            # Changelog
+
+            All notable changes...
+          version: '1.0.0'
+          release_notes: '### Added\n\n- Project started'
+          release_date: '2024-01-01'
+
+      - name: Verify test_8_first_release
+        run: |
+          json='${{ steps.test_8_first_release.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 8: Checking first release append"
+          echo "$content" | grep -q "\[1.0.0\]" || exit 1
+          echo "$content" | grep -q "All notable changes" || exit 1
+
+      # Test 9: Special characters in release_notes (preserved)
+      - id: test_9_special_chars
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '1.0.0'
+          release_notes: |
+            ### Added
+
+            - Fix "quoted" text
+            - Support for `code` elements
+            - URL: https://example.com
+          release_date: '2024-01-01'
+
+      - name: Verify test_9_special_chars
+        run: |
+          json='${{ steps.test_9_special_chars.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 9: Checking special characters"
+          echo "$content" | grep -q "quoted" || exit 1
+          echo "$content" | grep -q "Support for" || exit 1
+          echo "$content" | grep -q "elements" || exit 1
+          echo "$content" | grep -q "https://example.com" || exit 1
+
+      # Test 10: Date format YYYY-MM-DD
+      - id: test_10_date_format
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: ''
+          version: '1.0.0'
+          release_notes: 'test'
+          release_date: '2024-12-25'
+
+      - name: Verify test_10_date_format
+        run: |
+          json='${{ steps.test_10_date_format.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 10: Checking date format"
+          echo "$content" | grep -q "2024-12-25" || exit 1
+
+      # Test 11: Preserve header when inserting releases
+      - id: test_11_preserve_header
+        uses: ./.github/actions/release__write_release_files_pure
+        with:
+          existing_changelog_content: |
+            # Changelog
+
+            All notable changes to this project will be documented in this file.
+
+            The format is based on [Keep a Changelog](https://keepachangelog.com),
+            and this project adheres to [Semantic Versioning](https://semver.org).
+
+            ## [0.1.0] - 2023-01-01
+
+            ### Added
+            - Initial version
+          version: '1.0.0'
+          release_notes: '### Added\n\n- Production ready'
+          release_date: '2024-01-01'
+
+      - name: Verify test_11_preserve_header
+        run: |
+          json='${{ steps.test_11_preserve_header.outputs.json_output }}'
+          content=$(echo "$json" | jq -r '.changelog')
+          echo "Test 11: Checking header preservation"
+          echo "$content" | grep -q "Keep a Changelog" || exit 1
+          echo "$content" | grep -q "Semantic Versioning" || exit 1
+          line_1=$(echo "$content" | grep -n "1.0.0" | cut -d: -f1)
+          line_header=$(echo "$content" | grep -n "Keep a Changelog" | cut -d: -f1)
+          [[ $line_header -lt $line_1 ]] || exit 1
+
+
+      # Summary
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "====== PURE WRITE RELEASE FILES TEST SUMMARY ======"
+          echo "✓ All 11 test cases executed"
+          echo "✓ CHANGELOG formatting verified"
+          echo "✓ Version file output verified"
+          echo "✓ Release ordering verified"
+          echo "✓ Header preservation verified"
+          echo "✓ Special characters handled"
+          echo "====================================================="

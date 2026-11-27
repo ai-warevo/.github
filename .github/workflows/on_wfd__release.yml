@@ -1,0 +1,38 @@
+name: on_wfd__release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  resolve_version:
+    uses: ./.github/workflows/reusable__release__resolve_version.yml
+
+  build:
+    needs: resolve_version
+    uses: ./.github/workflows/reusable__common__build_cpp23.yml
+    with:
+      upload_artifacts: true
+      new_version_number: ${{ needs.resolve_version.outputs.version }}
+      version_file_path: ''
+      lint_cmd: 'true'
+      build_cmd: 'cmake -S example -B example/build/$PRESET -DCMAKE_BUILD_TYPE=Release -DAW_EXAMPLE_BUILD_TESTS=ON && cmake --build example/build/$PRESET --parallel && cmake -E make_directory dist/$PRESET && find example/build/$PRESET -type f \( -name host -o -name host.exe -o -name libplugin.so -o -name plugin.dll \) -exec cmake -E copy {} dist/$PRESET/ \;'
+      test_cmd: 'ctest --test-dir example/build/$PRESET --output-on-failure'
+
+  sanitizers:
+    needs: resolve_version
+    uses: ./.github/workflows/reusable__common__sanitizers_cpp23.yml
+    with:
+      build_cmd: 'SANITIZER=address; [[ "$PRESET" == *tsan* ]] && SANITIZER=thread; cmake -S . -B build/$PRESET -DCMAKE_BUILD_TYPE=Debug -DAW_EXAMPLE_BUILD_TESTS=ON -DAW_EXAMPLE_SANITIZE=$SANITIZER && cmake --build build/$PRESET --parallel'
+      test_cmd: 'ctest --test-dir build/$PRESET --output-on-failure'
+      working_directory: example
+
+  publish:
+    needs: [resolve_version, build, sanitizers]
+    uses: ./.github/workflows/reusable__release__publish.yml
+    with:
+      version: ${{ needs.resolve_version.outputs.version }}
+      release_notes: ${{ needs.resolve_version.outputs.release_notes }}

@@ -1,0 +1,38 @@
+name: on_push__main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'example/**'
+      - '.github/actions/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable__common__build_cpp23.yml
+    with:
+      upload_artifacts: false
+      lint_cmd: 'true'
+      build_cmd: 'cmake -S example -B example/build/ci -DCMAKE_BUILD_TYPE=Release -DAW_EXAMPLE_BUILD_TESTS=ON && cmake --build example/build/ci --parallel'
+      test_cmd: 'ctest --test-dir example/build/ci --output-on-failure'
+      version_file_path: ''
+
+  coverage:
+    uses: ./.github/workflows/reusable__common__coverage_cpp23.yml
+    with:
+      working_directory: example
+      coverage_cmd: 'cmake -S . -B build/coverage -DCMAKE_BUILD_TYPE=Debug -DAW_EXAMPLE_BUILD_TESTS=ON -DAW_EXAMPLE_ENABLE_COVERAGE=ON && cmake --build build/coverage --parallel && ctest --test-dir build/coverage --output-on-failure && mkdir -p htmlcov && gcovr -r . build/coverage --filter .*/(plugin/src|plugin/tests|host/src|include)/ --exclude .*/_deps/ --xml coverage.xml --html-details htmlcov/index.html'
+      coverage_artifacts_path: |
+        example/coverage.xml
+        example/htmlcov/
+      coverage_xml_path: coverage.xml
+      coverage_html_path: htmlcov
+      min_coverage: 0
+      deploy_pages: true
+      deploy_badge: true

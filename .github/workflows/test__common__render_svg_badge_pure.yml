@@ -1,0 +1,177 @@
+name: test__common__render_svg_badge_pure
+
+on:
+  workflow_call:
+
+jobs:
+  test_render_badge:
+    name: Render SVG Badge
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Test 1: Default parameters
+      - id: test_defaults
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'coverage'
+          text_right: '85%'
+          bg_color_right: '#44cc11'
+
+      - name: Verify test_defaults
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_defaults.outputs.json_output }}'
+          
+          BADGE_PATH=$(echo "$OUTPUT" | jq -r '.badge_path')
+          SVG=$(echo "$OUTPUT" | jq -r '.svg')
+          
+          echo "Test: Default parameters"
+          echo "  Badge path: $BADGE_PATH"
+          
+          # Verify file was created
+          if [[ ! -f "$BADGE_PATH" ]]; then
+            echo "ERROR: Badge file not created at $BADGE_PATH" >&2
+            exit 1
+          fi
+          
+          # Verify SVG contains expected elements
+          echo "$SVG" | grep -q "<svg" || { echo "ERROR: Missing SVG tag" >&2; exit 1; }
+          echo "$SVG" | grep -q "coverage" || { echo "ERROR: Missing left text" >&2; exit 1; }
+          echo "$SVG" | grep -q "85%" || { echo "ERROR: Missing right text" >&2; exit 1; }
+          echo "$SVG" | grep -q "#44cc11" || { echo "ERROR: Missing color" >&2; exit 1; }
+          
+          echo "✓ PASS"
+
+      # Test 2: Custom width calculation
+      - id: test_custom_width
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          width: '200'
+          height: '20'
+          text_left: 'tests'
+          text_right: '100%'
+          filename: 'badge_wide.svg'
+
+      - name: Verify test_custom_width
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_custom_width.outputs.json_output }}'
+          
+          SVG=$(echo "$OUTPUT" | jq -r '.svg')
+          
+          echo "Test: Custom width (200px)"
+          
+          # Verify width is in SVG
+          echo "$SVG" | grep -q 'width="200"' || { echo "ERROR: Width not set correctly" >&2; exit 1; }
+          
+          # Verify text is present
+          echo "$SVG" | grep -q "tests" || { echo "ERROR: Missing left text" >&2; exit 1; }
+          echo "$SVG" | grep -q "100%" || { echo "ERROR: Missing right text" >&2; exit 1; }
+          
+          if [[ ! -f "badge_wide.svg" ]]; then
+            echo "ERROR: File not created with custom filename" >&2
+            exit 1
+          fi
+          
+          echo "✓ PASS"
+
+      # Test 3: Custom colors
+      - id: test_custom_colors
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'build'
+          text_right: 'passing'
+          bg_color_left: '#333'
+          bg_color_right: '#28a745'
+          text_color: '#000'
+          filename: 'badge_colors.svg'
+
+      - name: Verify test_custom_colors
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_custom_colors.outputs.json_output }}'
+          
+          SVG=$(echo "$OUTPUT" | jq -r '.svg')
+          
+          echo "Test: Custom colors"
+          
+          # Verify colors are in SVG
+          echo "$SVG" | grep -q "#333" || { echo "ERROR: Left color not found" >&2; exit 1; }
+          echo "$SVG" | grep -q "#28a745" || { echo "ERROR: Right color not found" >&2; exit 1; }
+          echo "$SVG" | grep -q "#000" || { echo "ERROR: Text color not found" >&2; exit 1; }
+          
+          echo "✓ PASS"
+
+      # Test 4: Yellow color band
+      - id: test_yellow_band
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'coverage'
+          text_right: '65%'
+          bg_color_right: '#dfb317'
+
+      - name: Verify test_yellow_band
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_yellow_band.outputs.json_output }}'
+          
+          SVG=$(echo "$OUTPUT" | jq -r '.svg')
+          
+          echo "Test: Yellow color band"
+          
+          echo "$SVG" | grep -q "#dfb317" || { echo "ERROR: Yellow color not found" >&2; exit 1; }
+          
+          echo "✓ PASS"
+
+      # Test 5: Red color band
+      - id: test_red_band
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'coverage'
+          text_right: '25%'
+          bg_color_right: '#e05d44'
+
+      - name: Verify test_red_band
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_red_band.outputs.json_output }}'
+          
+          SVG=$(echo "$OUTPUT" | jq -r '.svg')
+          
+          echo "Test: Red color band"
+          
+          echo "$SVG" | grep -q "#e05d44" || { echo "ERROR: Red color not found" >&2; exit 1; }
+          
+          echo "✓ PASS"
+
+      # Test 6: Relative path creation
+      - id: test_relative_path
+        uses: ./.github/actions/common__render_svg_badge_pure
+        with:
+          text_left: 'rel'
+          text_right: 'path'
+          filename: 'badges/subdir/test.svg'
+
+      - name: Verify test_relative_path
+        shell: bash
+        run: |
+          OUTPUT='${{ steps.test_relative_path.outputs.json_output }}'
+          
+          BADGE_PATH=$(echo "$OUTPUT" | jq -r '.badge_path')
+          
+          echo "Test: Relative path with subdirectories"
+          
+          if [[ ! -f "$BADGE_PATH" ]]; then
+            echo "ERROR: File not created at $BADGE_PATH" >&2
+            exit 1
+          fi
+          
+          echo "✓ PASS"
+
+      - name: Test Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "✓ All render_badge tests executed"

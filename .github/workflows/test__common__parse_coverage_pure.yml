@@ -1,0 +1,165 @@
+name: test__common__parse_coverage_pure
+
+on:
+  workflow_call:
+
+jobs:
+  test_parse_coverage:
+    name: Parse Coverage
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Test 1: Valid Cobertura XML with line-rate
+      - name: Setup test_xml_valid
+        shell: bash
+        run: |
+          mkdir -p /tmp
+          cat > /tmp/test_cov.xml << 'EOF'
+          <?xml version="1.0"?>
+          <coverage version="5.4" line-rate="0.85">
+            <packages/>
+          </coverage>
+          EOF
+
+      - id: test_xml_valid
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: /tmp/test_cov.xml
+
+      - name: Verify test_xml_valid
+        shell: bash
+        run: |
+          PERCENT=$(echo '${{ steps.test_xml_valid.outputs.json_output }}' | jq -r '.percent')
+          COLOR=$(echo '${{ steps.test_xml_valid.outputs.json_output }}' | jq -r '.color')
+          
+          echo "Test: XML valid (line-rate=0.85)"
+          echo "  Expected: percent=85, color=#44cc11"
+          echo "  Got: percent=$PERCENT, color=$COLOR"
+          
+          [[ "$PERCENT" == "85" ]] || exit 1
+          [[ "$COLOR" == "#44cc11" ]] || exit 1
+          echo "✓ PASS"
+
+      # Test 2: Coverage >= 80 (brightgreen)
+      - name: Setup test_color_high
+        shell: bash
+        run: |
+          mkdir -p /tmp
+          cat > /tmp/test_80.xml << 'EOF'
+          <?xml version="1.0"?>
+          <coverage line-rate="0.95"/>
+          EOF
+
+      - id: test_color_high
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: /tmp/test_80.xml
+
+      - name: Verify test_color_high
+        shell: bash
+        run: |
+          COLOR=$(echo '${{ steps.test_color_high.outputs.json_output }}' | jq -r '.color')
+          GH_COLOR=$(echo '${{ steps.test_color_high.outputs.json_output }}' | jq -r '.github_color')
+          
+          echo "Test: Color >= 80% (line-rate=0.95)"
+          echo "  Expected: color=#44cc11, github_color=brightgreen"
+          echo "  Got: color=$COLOR, github_color=$GH_COLOR"
+          
+          [[ "$COLOR" == "#44cc11" ]] || exit 1
+          [[ "$GH_COLOR" == "brightgreen" ]] || exit 1
+          echo "✓ PASS"
+
+      # Test 3: Coverage 50-79 (yellow)
+      - name: Setup test_color_medium
+        shell: bash
+        run: |
+          mkdir -p /tmp
+          cat > /tmp/test_60.xml << 'EOF'
+          <?xml version="1.0"?>
+          <coverage line-rate="0.60"/>
+          EOF
+
+      - id: test_color_medium
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: /tmp/test_60.xml
+
+      - name: Verify test_color_medium
+        shell: bash
+        run: |
+          COLOR=$(echo '${{ steps.test_color_medium.outputs.json_output }}' | jq -r '.color')
+          GH_COLOR=$(echo '${{ steps.test_color_medium.outputs.json_output }}' | jq -r '.github_color')
+          
+          echo "Test: Color 50-79% (line-rate=0.60)"
+          echo "  Expected: color=#dfb317, github_color=yellow"
+          echo "  Got: color=$COLOR, github_color=$GH_COLOR"
+          
+          [[ "$COLOR" == "#dfb317" ]] || exit 1
+          [[ "$GH_COLOR" == "yellow" ]] || exit 1
+          echo "✓ PASS"
+
+      # Test 4: Coverage < 50 (red)
+      - name: Setup test_color_low
+        shell: bash
+        run: |
+          mkdir -p /tmp
+          cat > /tmp/test_30.xml << 'EOF'
+          <?xml version="1.0"?>
+          <coverage line-rate="0.30"/>
+          EOF
+
+      - id: test_color_low
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: /tmp/test_30.xml
+
+      - name: Verify test_color_low
+        shell: bash
+        run: |
+          COLOR=$(echo '${{ steps.test_color_low.outputs.json_output }}' | jq -r '.color')
+          GH_COLOR=$(echo '${{ steps.test_color_low.outputs.json_output }}' | jq -r '.github_color')
+          
+          echo "Test: Color < 50% (line-rate=0.30)"
+          echo "  Expected: color=#e05d44, github_color=red"
+          echo "  Got: color=$COLOR, github_color=$GH_COLOR"
+          
+          [[ "$COLOR" == "#e05d44" ]] || exit 1
+          [[ "$GH_COLOR" == "red" ]] || exit 1
+          echo "✓ PASS"
+
+      # Test 5: LCOV fallback
+      - name: Setup test_lcov_fallback
+        shell: bash
+        run: |
+          mkdir -p /tmp
+          cat > /tmp/test.lcov << 'EOF'
+          LH:72
+          LF:90
+          end_of_record
+          EOF
+
+      - id: test_lcov_fallback
+        uses: ./.github/actions/common__parse_coverage_pure
+        with:
+          xml_path: /tmp/nonexistent.xml
+          lcov_path: /tmp/test.lcov
+
+      - name: Verify test_lcov_fallback
+        shell: bash
+        run: |
+          PERCENT=$(echo '${{ steps.test_lcov_fallback.outputs.json_output }}' | jq -r '.percent')
+          
+          echo "Test: LCOV fallback (72/90 = 80%)"
+          echo "  Expected: percent=80"
+          echo "  Got: percent=$PERCENT"
+          
+          [[ "$PERCENT" == "80" ]] || exit 1
+          echo "✓ PASS"
+
+      - name: Test Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "✓ All parse_coverage tests executed"

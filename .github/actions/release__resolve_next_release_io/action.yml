@@ -1,0 +1,117 @@
+name: 'release__resolve_next_release_io'
+description: 'Resolves next SemVer version and release notes from git history and CHANGELOG.md (I/O + pure compute)'
+inputs:
+  version_source:
+    description: 'Where to read version from: git_tags, version_file, package_json, cargo_toml'
+    required: false
+    default: 'version_file'
+  version_file_path:
+    description: 'Path to version file (for version_file source)'
+    required: false
+    default: 'VERSION'
+outputs:
+  version:
+    value: ${{ fromJson(steps.pure.outputs.json_output || '{"version":"0.0.0","release_notes":""}').version }}
+  release_notes:
+    value: ${{ fromJson(steps.pure.outputs.json_output || '{"version":"0.0.0","release_notes":""}').release_notes }}
+runs:
+  using: 'composite'
+  steps:
+    # Version source: git tags
+    - id: collect_git_tags
+      if: inputs.version_source == 'git_tags'
+      shell: bash
+      run: |
+        RAW_TAGS=$(git tag --merged HEAD --sort=-v:refname)
+        echo "raw_tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$RAW_TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Version source: VERSION file
+    - id: collect_version_file
+      if: inputs.version_source == 'version_file'
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.version_file_path }}" ]; then
+          RAW_TAGS="v$(cat "${{ inputs.version_file_path }}" | tr -d '\n\r')"
+        else
+          RAW_TAGS=""
+        fi
+        echo "raw_tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$RAW_TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Version source: package.json
+    - id: collect_package_json
+      if: inputs.version_source == 'package_json'
+      shell: bash
+      run: |
+        if [ -f "package.json" ]; then
+          VERSION=$(jq -r '.version' package.json)
+          RAW_TAGS="v$VERSION"
+        else
+          RAW_TAGS=""
+        fi
+        echo "raw_tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$RAW_TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Version source: Cargo.toml
+    - id: collect_cargo_toml
+      if: inputs.version_source == 'cargo_toml'
+      shell: bash
+      run: |
+        if [ -f "Cargo.toml" ]; then
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\([^"]*\)".*/\1/')
+          RAW_TAGS="v$VERSION"
+        else
+          RAW_TAGS=""
+        fi
+        echo "raw_tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$RAW_TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Collect CHANGELOG.md
+    - id: collect_changelog
+      shell: bash
+      run: |
+        CHANGELOG_TEXT=$([ -f CHANGELOG.md ] && cat CHANGELOG.md || echo "")
+        echo "changelog_text<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_TEXT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Collect commits
+    - id: collect_commits
+      shell: bash
+      run: |
+        COMMITS=$(git log $(git describe --tags --abbrev=0 2>/dev/null || echo "")..HEAD --no-merges --pretty=format:%s 2>/dev/null || git log --no-merges --pretty=format:%s)
+        echo "commits<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMITS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Select raw_tags from the appropriate version source
+    - id: select_raw_tags
+      shell: bash
+      run: |
+        RAW_TAGS=""
+        if [ -n "${{ steps.collect_git_tags.outputs.raw_tags }}" ]; then
+          RAW_TAGS="${{ steps.collect_git_tags.outputs.raw_tags }}"
+        elif [ -n "${{ steps.collect_version_file.outputs.raw_tags }}" ]; then
+          RAW_TAGS="${{ steps.collect_version_file.outputs.raw_tags }}"
+        elif [ -n "${{ steps.collect_package_json.outputs.raw_tags }}" ]; then
+          RAW_TAGS="${{ steps.collect_package_json.outputs.raw_tags }}"
+        elif [ -n "${{ steps.collect_cargo_toml.outputs.raw_tags }}" ]; then
+          RAW_TAGS="${{ steps.collect_cargo_toml.outputs.raw_tags }}"
+        fi
+        echo "raw_tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$RAW_TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Call pure action
+    - id: pure
+      uses: ai-warevo/.github/.github/actions/release__resolve_next_release_pure@main
+      with:
+        raw_tags: ${{ steps.select_raw_tags.outputs.raw_tags }}
+        changelog_text: ${{ steps.collect_changelog.outputs.changelog_text }}
+        commits: ${{ steps.collect_commits.outputs.commits }}
+
