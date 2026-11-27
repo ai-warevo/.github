@@ -67,7 +67,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
         run: |
           if setarch $(uname -m) -R true 2>/dev/null; then
-            setarch $(uname -m) -R ${{ inputs.test_cmd }}
+            setarch $(uname -m) -R bash -c '${{ inputs.test_cmd }}'
           else
             ${{ inputs.test_cmd }}
           fi
