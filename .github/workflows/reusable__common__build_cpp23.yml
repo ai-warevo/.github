@@ -111,4 +111,4 @@ jobs:
         if: inputs.upload_artifacts
         with:
           name: common__build_${{ matrix.preset }}
-          path: example/dist/${{ matrix.preset }}/
+          path: dist/${{ matrix.preset }}/
