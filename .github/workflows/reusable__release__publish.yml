@@ -53,16 +53,26 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           mkdir -p dist
-          find dist -mindepth 2 -type f | while IFS= read -r file; do
-            rel="${file#dist/}"
-            preset="${rel%%/*}"
-            base="$(basename "$file")"
-            if [[ "$base" == *.* ]]; then
-              mv "$file" "dist/${base%.*}-v${VERSION}-${preset}.${base##*.}"
-            else
-              mv "$file" "dist/${base}-v${VERSION}-${preset}"
-            fi
+          
+          # Process each artifact directory: dist/common__build_<preset>/
+          for artifact_dir in dist/common__build_*/; do
+            [ -d "$artifact_dir" ] || continue
+            
+            # Extract preset: common__build_gcc-15-debug → gcc-15-debug
+            artifact_name="$(basename "$artifact_dir")"
+            preset="${artifact_name#common__build_}"
+            
+            # Flatten files into dist/ with preset suffix
+            find "$artifact_dir" -type f | while IFS= read -r file; do
+              base="$(basename "$file")"
+              if [[ "$base" == *.* ]]; then
+                mv "$file" "dist/${base%.*}-v${VERSION}-${preset}.${base##*.}"
+              else
+                mv "$file" "dist/${base}-v${VERSION}-${preset}"
+              fi
+            done
           done
+          
           find dist -mindepth 1 -type d -empty -delete
 
       - name: Generate Checksums
