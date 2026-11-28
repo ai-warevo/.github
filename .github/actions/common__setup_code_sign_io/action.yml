@@ -1,0 +1,85 @@
+name: 'common__setup_code_sign_io'
+description: 'Import code signing certificate to Windows certificate stores (I/O operation)'
+
+inputs:
+  certificate_base64:
+    description: 'Base64-encoded PFX certificate from secrets'
+    required: true
+  certificate_password:
+    description: 'Password to unlock the PFX certificate'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - id: import
+      shell: powershell
+      run: |
+        $cert_b64 = "${{ inputs.certificate_base64 }}"
+        $cert_pwd = "${{ inputs.certificate_password }}"
+        
+        if (-not $cert_b64) {
+          Write-Host "::warning::certificate_base64 is empty; skipping certificate import"
+          exit 0
+        }
+        
+        try {
+          # Decode base64 certificate
+          $certBytes = [System.Convert]::FromBase64String($cert_b64)
+          $certPath = Join-Path $env:TEMP "code_signing.pfx"
+          [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+          Write-Host "✓ Decoded base64 certificate to $certPath"
+          
+          # Import to CurrentUser\My store (accessible to signtool)
+          $pwd = ConvertTo-SecureString $cert_pwd -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $certPath `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -Password $pwd `
+            -Exportable
+          
+          Write-Host "✓ Imported certificate to Cert:\CurrentUser\My"
+          Write-Host "  Subject: $($cert.Subject)"
+          Write-Host "  Thumbprint: $($cert.Thumbprint)"
+          
+          # Also import to Trusted Root and Trusted Publishers (LocalMachine)
+          # This suppresses trust prompts for end users
+          $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
+          $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+          $rootStore.Add($cert)
+          $rootStore.Close()
+          Write-Host "✓ Imported to LocalMachine\Root"
+          
+          $pubStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPublisher", "LocalMachine")
+          $pubStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+          $pubStore.Add($cert)
+          $pubStore.Close()
+          Write-Host "✓ Imported to LocalMachine\TrustedPublisher"
+          
+          # Set output for downstream jobs
+          echo "certificate_subject=$($cert.Subject)" >> $env:GITHUB_OUTPUT
+          echo "certificate_thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+          echo "certificate_imported=true" >> $env:GITHUB_OUTPUT
+        }
+        catch {
+          Write-Host "::error::Certificate import failed: $_"
+          echo "certificate_imported=false" >> $env:GITHUB_OUTPUT
+          exit 1
+        }
+        finally {
+          # Always cleanup temp PFX file
+          if (Test-Path $certPath) {
+            Remove-Item $certPath -Force
+            Write-Host "✓ Cleaned up temporary PFX file"
+          }
+        }
+
+outputs:
+  certificate_subject:
+    value: ${{ steps.import.outputs.certificate_subject }}
+    description: 'X.509 subject of imported certificate'
+  certificate_thumbprint:
+    value: ${{ steps.import.outputs.certificate_thumbprint }}
+    description: 'Thumbprint of imported certificate'
+  certificate_imported:
+    value: ${{ steps.import.outputs.certificate_imported }}
+    description: 'true if certificate was successfully imported'
