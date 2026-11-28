@@ -46,22 +46,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Flatten dist artifacts
         env:
           VERSION: ${{ inputs.version }}
         run: |
           mkdir -p dist
-          
+
           # Process each artifact directory: dist/common__build_<preset>/
           for artifact_dir in dist/common__build_*/; do
             [ -d "$artifact_dir" ] || continue
-            
+
             # Extract preset: common__build_gcc-15-debug → gcc-15-debug
             artifact_name="$(basename "$artifact_dir")"
             preset="${artifact_name#common__build_}"
-            
+
             # Flatten files into dist/ with preset suffix
             find "$artifact_dir" -type f | while IFS= read -r file; do
               base="$(basename "$file")"
@@ -72,7 +72,7 @@ jobs:
               fi
             done
           done
-          
+
           find dist -mindepth 1 -type d -empty -delete
 
       - name: Generate Checksums

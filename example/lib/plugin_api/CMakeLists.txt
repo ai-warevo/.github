@@ -10,7 +10,7 @@ target_include_directories(plugin_api
 target_compile_features(plugin_api INTERFACE cxx_std_23)
 
 # Install public API headers
-install(DIRECTORY include/ 
+install(DIRECTORY include/
     DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )
