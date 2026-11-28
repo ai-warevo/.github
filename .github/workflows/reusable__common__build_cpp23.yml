@@ -121,7 +121,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Import code signing certificate
-        if: inputs.enable_code_signing && contains(inputs.code_sign_presets, matrix.preset) && secrets.code_sign_certificate_base64 != ''
+        if: inputs.enable_code_signing && contains(inputs.code_sign_presets, matrix.preset)
         uses: ai-warevo/.github/.github/actions/common__setup_code_sign_io@main
         with:
           certificate_base64: ${{ secrets.code_sign_certificate_base64 }}
