@@ -22,9 +22,8 @@ if(MSVC)
 else()
     # GCC / Clang: -Wall -Wextra
     add_compile_options(-Wall -Wextra -Wpedantic)
-    if(APP_WARNINGS_AS_ERRORS)
-        add_compile_options(-Werror)
-    endif()
+    # Note: -Werror is NOT applied globally (affects FetchContent deps like Catch2)
+    # Instead, it's applied per-target in CMakeLists.txt or via CMakePresets
 endif()
 
 # ── Sanitizer Options (inferred from preset name) ──────────────────────────

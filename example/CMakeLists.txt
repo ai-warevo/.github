@@ -19,6 +19,17 @@ add_subdirectory(lib)
 # ── Application (host executable) ────────────────────────────────────────────
 add_subdirectory(app)
 
+# ── Apply -Werror to our targets (not FetchContent dependencies) ──────────────
+# This must happen BEFORE FetchContent is added, so our targets get it but Catch2 doesn't.
+# ASan can trigger false-positive uninitialized warnings in libstdc++ regex code.
+if(APP_WARNINGS_AS_ERRORS AND NOT MSVC)
+    foreach(_tgt IN ITEMS plugin host)
+        if(TARGET ${_tgt})
+            target_compile_options(${_tgt} PRIVATE -Werror)
+        endif()
+    endforeach()
+endif()
+
 # ── Tests (opt-in, enabled by default for top-level builds) ──────────────────
 option(AW_EXAMPLE_BUILD_TESTS "Build example unit tests" ${AW_EXAMPLE_IS_TOP_LEVEL})
 
@@ -41,6 +52,13 @@ if(AW_EXAMPLE_BUILD_TESTS)
 
     # ── Register module tests ────────────────────────────────────────────
     add_subdirectory(lib/plugin/tests)
+    
+    # ── Apply -Werror to test targets (after they're created) ──────────────
+    if(APP_WARNINGS_AS_ERRORS AND NOT MSVC)
+        if(TARGET plugin_tests)
+            target_compile_options(plugin_tests PRIVATE -Werror)
+        endif()
+    endif()
 endif()
 
 # ── Coverage & Sanitizer Support (applied to project targets) ────────────────
