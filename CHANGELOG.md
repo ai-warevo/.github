@@ -14,6 +14,12 @@ Maintainer notes:
 
 ## [Unreleased]
 
+## [2.0.5] - 2026-11-28
+
+### Fixed
+
+- example
+
 ## [2.0.4] - 2026-11-28
 
 ### Fixed
