@@ -38,8 +38,14 @@ function(add_module_test)
     # Register with ctest
     add_test(NAME ${MOD_TEST_NAME} COMMAND ${MOD_TEST_NAME})
 
-    # Set LD_LIBRARY_PATH for tests to find shared libraries
-    if(UNIX)
+    # Set library path for tests to find shared libraries
+    if(WIN32)
+        # Windows: Use PATH for DLL discovery
+        set_tests_properties(${MOD_TEST_NAME} PROPERTIES
+            ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/lib/plugin;$ENV{PATH}"
+        )
+    elseif(UNIX)
+        # Unix: Use LD_LIBRARY_PATH
         set_tests_properties(${MOD_TEST_NAME} PROPERTIES
             ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib/plugin:$ENV{LD_LIBRARY_PATH}"
         )

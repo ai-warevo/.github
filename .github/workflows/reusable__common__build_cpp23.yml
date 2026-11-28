@@ -39,6 +39,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-24.04
     container: ghcr.io/ai-warevo/ci-cpp23:clang-18-libcxx
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: lint
@@ -47,6 +48,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.preset }})
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -96,10 +98,12 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: build
+        timeout-minutes: 60
         shell: bash
         run: ${{ inputs.build_cmd }}
 
       - name: test
+        timeout-minutes: 15
         shell: bash
         run: ${{ inputs.test_cmd }}
 
