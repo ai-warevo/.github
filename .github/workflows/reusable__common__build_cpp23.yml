@@ -7,7 +7,12 @@ on:
         type: boolean
         required: true
         default: false
-        description: 'Whether to upload build artifacts from dist/'
+        description: 'Whether to upload build artifacts'
+      artifacts_base_path:
+        type: string
+        required: false
+        default: 'dist'
+        description: 'Base directory where build artifacts are located (relative to repo root). Preset name is appended automatically: <artifacts_base_path>/<preset>/'
       new_version_number:
         type: string
         required: false
@@ -111,4 +116,4 @@ jobs:
         if: inputs.upload_artifacts
         with:
           name: common__build_${{ matrix.preset }}
-          path: dist/${{ matrix.preset }}/
+          path: ${{ inputs.artifacts_base_path }}/${{ matrix.preset }}/

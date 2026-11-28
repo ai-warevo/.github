@@ -16,6 +16,7 @@ jobs:
     uses: ai-warevo/.github/.github/workflows/reusable__common__build_cpp23.yml@main
     with:
       upload_artifacts: true
+      artifacts_base_path: 'example/dist'
       new_version_number: ${{ needs.resolve_version.outputs.version }}
       version_file_path: 'VERSION'
       lint_cmd: 'cd example && make lint'

@@ -12,3 +12,8 @@ add_custom_command(TARGET host POST_BUILD
         $<TARGET_FILE_DIR:host>
     COMMENT "Copying plugin library next to host executable"
 )
+
+# Install host executable
+install(TARGETS host
+    RUNTIME DESTINATION bin
+)

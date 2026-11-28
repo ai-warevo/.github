@@ -24,3 +24,9 @@ if(WIN32)
         SUFFIX ".dll"
     )
 endif()
+
+# Install plugin library
+install(TARGETS plugin
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
