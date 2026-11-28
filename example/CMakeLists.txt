@@ -1,31 +1,31 @@
-# ── Example C++23 Plugin Project ──────────────────────────────────────────
+# ── Example C++23 Plugin Project (Production-Ready Structure) ─────────────
 cmake_minimum_required(VERSION 3.20)
 project(example LANGUAGES CXX)
 
+# ── Determine if this is a top-level build ──────────────────────────────────
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(AW_EXAMPLE_IS_TOP_LEVEL ON)
 else()
     set(AW_EXAMPLE_IS_TOP_LEVEL OFF)
 endif()
 
-# ── Coverage ────────────────────────────────────────────────────────────────
-option(AW_EXAMPLE_ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+# ── Shared Compiler Options ──────────────────────────────────────────────────
+include(cmake/CompilerOptions.cmake)
+include(cmake/AddModuleTest.cmake)
 
-# ── Sanitizers ──────────────────────────────────────────────────────────────
-set(AW_EXAMPLE_SANITIZE "none" CACHE STRING "Sanitizer to enable: none, address (ASan+UBSan) or thread (TSan)")
-set_property(CACHE AW_EXAMPLE_SANITIZE PROPERTY STRINGS none address thread)
+# ── Library Modules (api, platform, plugin) ──────────────────────────────────
+add_subdirectory(lib)
 
-# ── Subprojects ───────────────────────────────────────────────────────────
-add_subdirectory(plugin)
-add_subdirectory(host)
+# ── Application (host executable) ────────────────────────────────────────────
+add_subdirectory(app)
 
-# ── Tests (opt-in, off when consumed as a subproject) ──────────────────────
+# ── Tests (opt-in, enabled by default for top-level builds) ──────────────────
 option(AW_EXAMPLE_BUILD_TESTS "Build example unit tests" ${AW_EXAMPLE_IS_TOP_LEVEL})
 
 if(AW_EXAMPLE_BUILD_TESTS)
     enable_testing()
 
-    # ── Catch2 v3: local third_party first, FetchContent fallback ─────────
+    # ── Catch2 v3: local third_party first, FetchContent fallback ──────────
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/catch2/CMakeLists.txt")
         add_subdirectory(third_party/catch2)
     else()
@@ -39,19 +39,20 @@ if(AW_EXAMPLE_BUILD_TESTS)
         FetchContent_MakeAvailable(Catch2)
     endif()
 
-    add_subdirectory(plugin/tests)
+    # ── Register module tests ────────────────────────────────────────────
+    add_subdirectory(lib/plugin/tests)
 endif()
 
-# ── Apply coverage / sanitizer flags to all project targets ─────────────────
-# Explicitly list project targets (not FetchContent deps like Catch2).
-set(_AW_PROJECT_TARGETS plugin host)
+# ── Coverage & Sanitizer Support (applied to project targets) ────────────────
+# List all project targets (not FetchContent deps like Catch2)
+set(_AW_PROJECT_TARGETS host plugin)
 
 if(AW_EXAMPLE_BUILD_TESTS)
     list(APPEND _AW_PROJECT_TARGETS plugin_tests)
 endif()
 
-if(AW_EXAMPLE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # --coverage adds -lgcov automatically; -O0 -g required for meaningful data
+# Coverage instrumentation (mutually exclusive with sanitizers)
+if(CMAKE_CXX_FLAGS MATCHES ".*--coverage.*" OR CMAKE_BUILD_TYPE MATCHES ".*coverage.*")
     foreach(_tgt IN LISTS _AW_PROJECT_TARGETS)
         if(TARGET ${_tgt})
             target_compile_options(${_tgt} PRIVATE --coverage -O0 -g -fprofile-update=atomic)
@@ -60,24 +61,12 @@ if(AW_EXAMPLE_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endforeach()
 endif()
 
-if(NOT AW_EXAMPLE_SANITIZE STREQUAL "none")
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        message(FATAL_ERROR "AW_EXAMPLE_SANITIZE requires GCC or Clang")
-    endif()
-    if(AW_EXAMPLE_ENABLE_COVERAGE)
-        message(FATAL_ERROR "AW_EXAMPLE_SANITIZE cannot be combined with AW_EXAMPLE_ENABLE_COVERAGE")
-    endif()
-    if(AW_EXAMPLE_SANITIZE STREQUAL "address")
-        set(AW_EXAMPLE_SANITIZE_FLAGS "address,undefined")
-    elseif(AW_EXAMPLE_SANITIZE STREQUAL "thread")
-        set(AW_EXAMPLE_SANITIZE_FLAGS "thread")
-    else()
-        message(FATAL_ERROR "AW_EXAMPLE_SANITIZE must be one of: none, address, thread")
-    endif()
+# Sanitizer support (inferred from CMake flags or preset name)
+if(CMAKE_CXX_FLAGS MATCHES ".*fsanitize=.*")
+    # Flags are already set via CMakePresets.json; just apply_sanitizers_from_preset per target
     foreach(_tgt IN LISTS _AW_PROJECT_TARGETS)
         if(TARGET ${_tgt})
-            target_compile_options(${_tgt} PRIVATE -fsanitize=${AW_EXAMPLE_SANITIZE_FLAGS} -fno-omit-frame-pointer -g)
-            target_link_options(${_tgt} PRIVATE -fsanitize=${AW_EXAMPLE_SANITIZE_FLAGS})
+            apply_sanitizers_from_preset(${_tgt})
         endif()
     endforeach()
 endif()

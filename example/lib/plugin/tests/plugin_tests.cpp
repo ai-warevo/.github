@@ -14,12 +14,8 @@
 #include <string>
 #include <string_view>
 
-#include "plugin.h"
+#include "plugin_api/plugin.h"
 
-/**
- * @namespace aw::example::tests
- * @brief Test namespace.
- */
 namespace aw::example::tests {
 
 // ── plugin_version ────────────────────────────────────────────────────────

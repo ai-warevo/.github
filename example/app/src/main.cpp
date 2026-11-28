@@ -1,5 +1,5 @@
 /**
- * @file host.cpp
+ * @file main.cpp
  * @brief Host application for dynamic plugin loading.
  *
  * At runtime loads the plugin library (.so / .dll) and calls
@@ -8,8 +8,8 @@
  * Platform-specific details are encapsulated in aw::example::platform.
  */
 
-#include "plugin.h"
-#include "platform.h"
+#include "platform/platform.h"
+#include "plugin_api/plugin.h"
 
 #include <format>
 #include <iostream>
@@ -17,27 +17,13 @@
 #include <string>
 #include <tuple>
 
-/**
- * @namespace aw::example::host
- * @brief Host application namespace.
- *
- * Contains plugin loading logic and function invocation.
- */
 namespace aw::example::host {
 
-/**
- * @brief Plugin function types.
- */
 using version_fn = int (*)();
 using compute_fn = int (*)(int, int, int);
 using version_str_fn = const char* (*)();
 using op_name_fn = const char* (*)(int);
 
-/**
- * @brief Loads the plugin and resolves all required symbols.
- *
- * @return std::pair<handle, symbols> on success, std::nullopt on error.
- */
 inline std::optional<
     std::pair<aw::example::platform::LibraryHandle, std::tuple<version_fn, compute_fn, version_str_fn, op_name_fn>>>
 load_plugin() {
@@ -79,12 +65,6 @@ load_plugin() {
     return std::make_pair(lib.value(), std::make_tuple(fn_version, fn_compute, fn_version_s, fn_op_name));
 }
 
-/**
- * @brief Executes all plugin operations and outputs results.
- *
- * @param lib Library handle.
- * @param symbols std::tuple<version_fn, compute_fn, version_str_fn, op_name_fn>.
- */
 inline void run_plugin(aw::example::platform::LibraryHandle& lib,
                        const std::tuple<version_fn, compute_fn, version_str_fn, op_name_fn>& symbols) {
     const auto& [fn_version, fn_compute, fn_version_s, fn_op_name] = symbols;
@@ -109,13 +89,6 @@ inline void run_plugin(aw::example::platform::LibraryHandle& lib,
 
 } // namespace aw::example::host
 
-/**
- * @brief Host application entry point.
- *
- * @param argc Command line arguments.
- * @param argv Command line arguments.
- * @return 0 on success, error code on failure.
- */
 int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;

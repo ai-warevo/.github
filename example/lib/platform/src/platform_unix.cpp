@@ -8,38 +8,37 @@
  * - readlink /proc/self/exe — executable path lookup
  */
 
-#include "platform.h"
+#include "platform/platform.h"
 
 #include <array>
 #include <dlfcn.h>
 #include <format>
 #include <iostream>
-#include <linux/limits.h>
 #include <string>
 #include <unistd.h>
 
 #if defined(__APPLE__)
-#include <mach-o/dyld.h>
-#include <libgen.h>
+#  include <mach-o/dyld.h>
+#  include <libgen.h>
+#  define AW_PATH_MAX MAXPATHLEN
+#else
+#  include <linux/limits.h>
+#  define AW_PATH_MAX PATH_MAX
 #endif
 
 namespace aw::example::platform {
-
-// ── load_library ─────────────────────────────────────────────────────────
 
 std::optional<LibraryHandle> load_library(const std::string& path) {
     LibraryHandle lib;
     lib.handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
 
     if (lib.handle == nullptr) {
-        std::cerr << std::format("[host] dlopen failed: {} for '{}'", dlerror(), path) << '\n';
+        std::cerr << std::format("[platform] dlopen failed: {} for '{}'\n", dlerror(), path);
         return std::nullopt;
     }
 
     return lib;
 }
-
-// ── unload_library ───────────────────────────────────────────────────────
 
 void unload_library(LibraryHandle& lib) {
     if (lib.handle == nullptr) {
@@ -48,8 +47,6 @@ void unload_library(LibraryHandle& lib) {
     dlclose(lib.handle);
     lib.handle = nullptr;
 }
-
-// ── resolve_symbol ───────────────────────────────────────────────────────
 
 void* resolve_symbol(LibraryHandle& lib, std::string_view name) {
     if (lib.handle == nullptr) {
@@ -60,19 +57,12 @@ void* resolve_symbol(LibraryHandle& lib, std::string_view name) {
     auto* sym = dlsym(lib.handle, name.data());
 
     if (auto* err = dlerror()) {
-        std::cerr << std::format("[host] dlsym('{}') failed: {}", name, err) << '\n';
-        return nullptr;
-    }
-
-    if (sym == nullptr) {
-        std::cerr << std::format("[host] symbol '{}' not found", name) << '\n';
+        std::cerr << std::format("[platform] dlsym('{}') failed: {}\n", name, err);
         return nullptr;
     }
 
     return sym;
 }
-
-// ── find_plugin ──────────────────────────────────────────────────────────
 
 std::optional<std::string> find_plugin() {
     // 1. ENV var PLUGIN_PATH
@@ -82,31 +72,29 @@ std::optional<std::string> find_plugin() {
 
     // 2. Next to executable
 #if defined(__APPLE__)
-    char exe_path[MAXPATHLEN] = {0};
+    char exe_path[AW_PATH_MAX] = {0};
     uint32_t size = sizeof(exe_path);
     if (_NSGetExecutablePath(exe_path, &size) == 0) {
         std::string dir{exe_path};
         auto slash = dir.find_last_of('/');
         if (slash != std::string::npos) {
-            dir = dir.substr(0, slash) + "/libplugin.so";
-            return dir;
+            return dir.substr(0, slash) + "/libplugin.so";
         }
     }
 #else
-    std::array<char, PATH_MAX> exe_path{};
+    std::array<char, AW_PATH_MAX> exe_path{};
     ssize_t len = readlink("/proc/self/exe", exe_path.data(), exe_path.size() - 1);
     if (len > 0) {
         exe_path[static_cast<size_t>(len)] = '\0';
         std::string dir{exe_path.data()};
         auto slash = dir.find_last_of('/');
         if (slash != std::string::npos) {
-            dir = dir.substr(0, slash) + "/libplugin.so";
-            return dir;
+            return dir.substr(0, slash) + "/libplugin.so";
         }
     }
 #endif
 
-    // 3. System path
+    // 3. System path (empty = delegate to dlopen)
     return "";
 }
 

@@ -1,26 +1,25 @@
-#ifndef AW_GITHUB_PLUGIN_H
-#define AW_GITHUB_PLUGIN_H
+#ifndef AW_EXAMPLE_PLUGIN_API_PLUGIN_H
+#define AW_EXAMPLE_PLUGIN_API_PLUGIN_H
 
 #include <string_view>
 
 // ── Cross-platform export decorator ────────────────────────────────
 #if defined(_WIN32) || defined(__CYGWIN__)
-#ifdef PLUGIN_BUILDING_DLL
-#define PLUGIN_API __declspec(dllexport)
+#  ifdef PLUGIN_BUILDING_DLL
+#    define PLUGIN_API __declspec(dllexport)
+#  else
+#    define PLUGIN_API __declspec(dllimport)
+#  endif
 #else
-#define PLUGIN_API __declspec(dllimport)
-#endif
-#else
-#define PLUGIN_API __attribute__((visibility("default")))
+#  define PLUGIN_API __attribute__((visibility("default")))
 #endif
 
 /**
  * @namespace aw::example::plugin
- * @brief Namespace for the plugin public API.
+ * @brief Plugin public API.
  *
- * All exported functions are in this namespace.
- * Functions are exported via extern "C" for compatibility
- * with dynamic loaders (dlopen / LoadLibrary).
+ * All exported functions use extern "C" for compatibility with
+ * dynamic loaders (dlopen / LoadLibrary).
  */
 namespace aw::example::plugin {
 
@@ -31,29 +30,29 @@ namespace aw::example::plugin {
 extern "C" PLUGIN_API int plugin_version();
 
 /**
- * @brief Returns string representation of the API version.
+ * @brief Returns a string representation of the API version.
  * @return Pointer to string of format "plugin-api v<N>".
  */
 extern "C" PLUGIN_API const char* plugin_version_string();
 
 /**
- * @brief Computes arithmetic expression op(a, b).
+ * @brief Computes op(a, b).
  *
  * @param a First operand.
  * @param b Second operand.
  * @param op Operation code: 0 = add, 1 = subtract, 2 = multiply.
- * @return Computation result, or -1 for unknown operation.
+ * @return Result, or -1 for an unknown operation.
  */
 extern "C" PLUGIN_API int plugin_compute(int a, int b, int op);
 
 /**
- * @brief Returns string description of the operation by its code.
+ * @brief Returns the string name of an operation code.
  *
  * @param op Operation code.
- * @return Pointer to string: "add", "subtract", "multiply" or "unknown".
+ * @return "add", "subtract", "multiply", or "unknown".
  */
 extern "C" PLUGIN_API const char* plugin_op_name(int op);
 
 } // namespace aw::example::plugin
 
-#endif  // AW_GITHUB_PLUGIN_H
+#endif  // AW_EXAMPLE_PLUGIN_API_PLUGIN_H

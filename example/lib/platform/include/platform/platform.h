@@ -1,5 +1,5 @@
-#ifndef AW_GITHUB_PLATFORM_H
-#define AW_GITHUB_PLATFORM_H
+#ifndef AW_EXAMPLE_PLATFORM_PLATFORM_H
+#define AW_EXAMPLE_PLATFORM_PLATFORM_H
 
 #include <optional>
 #include <string>
@@ -7,19 +7,17 @@
 
 /**
  * @namespace aw::example::platform
- * @brief Cross-platform abstraction for dynamic library operations.
+ * @brief Cross-platform abstraction for dynamic library loading.
  *
- * Encapsulates all platform-specific details:
- * - library loading / unloading (LoadLibrary / dlopen)
- * - symbol resolution (GetProcAddress / dlsym)
- * - library path lookup (GetModuleFileName + backslash / readlink + slash)
+ * Encapsulates platform-specific details:
+ * - Library loading (LoadLibrary / dlopen)
+ * - Symbol resolution (GetProcAddress / dlsym)
+ * - Library path lookup
  */
 namespace aw::example::platform {
 
 /**
- * @brief Handle for a loaded dynamic library.
- *
- * Unified void* — HMODULE on Windows is cast to void*.
+ * @brief Opaque handle for a loaded dynamic library.
  */
 struct LibraryHandle {
     void* handle = nullptr;
@@ -28,20 +26,20 @@ struct LibraryHandle {
 /**
  * @brief Loads a library by path.
  *
- * @param path Library path (empty string = system search).
+ * @param path Library path; empty string = system search.
  * @return Handle on success, std::nullopt on error.
  */
 std::optional<LibraryHandle> load_library(const std::string& path);
 
 /**
- * @brief Unloads the loaded library.
+ * @brief Unloads a library handle.
  *
- * @param lib Library handle (modified, becomes null).
+ * @param lib Library handle (modified to null after unload).
  */
 void unload_library(LibraryHandle& lib);
 
 /**
- * @brief Resolves a symbol from the loaded library.
+ * @brief Resolves a symbol from a loaded library.
  *
  * @param lib Library handle.
  * @param name Symbol name.
@@ -55,10 +53,10 @@ void* resolve_symbol(LibraryHandle& lib, std::string_view name);
  * Order: ENV PLUGIN_PATH → next to executable → system path.
  *
  * @return Library path or std::nullopt if not found.
- *         Empty string = system search (delegate to loader).
+ *         Empty string = system search.
  */
 std::optional<std::string> find_plugin();
 
 } // namespace aw::example::platform
 
-#endif  // AW_GITHUB_PLATFORM_H
+#endif  // AW_EXAMPLE_PLATFORM_PLATFORM_H

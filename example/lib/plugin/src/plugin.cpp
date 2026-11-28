@@ -1,27 +1,13 @@
-#include "plugin.h"
+#include "plugin_api/plugin.h"
 
 #include <format>
 #include <source_location>
 #include <string_view>
 
-/**
- * @namespace aw::example::plugin::detail
- * @brief Internal plugin implementation details.
- *
- * Not exported to the public API.
- */
 namespace aw::example::plugin::detail {
 
-/**
- * @brief Current API version.
- */
 constexpr int kApiVersion = 1;
 
-/**
- * @brief Converts operation code to string representation.
- * @param op Operation code.
- * @return String: "add", "subtract", "multiply" or "unknown".
- */
 inline std::string_view op_to_string(int op) noexcept {
     switch (op) {
     case 0:
@@ -35,15 +21,6 @@ inline std::string_view op_to_string(int op) noexcept {
     }
 }
 
-/**
- * @brief Local info logger with C++23 source_location.
- *
- * In release builds the log is quiet — a stub.
- * Can be extended to file or syslog logging.
- *
- * @param msg Message.
- * @param loc Source location (file name, line number by default).
- */
 inline void log_info(std::string_view msg, const std::source_location& loc = std::source_location::current()) {
     (void)loc;
     (void)msg;

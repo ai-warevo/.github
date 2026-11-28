@@ -1,0 +1,69 @@
+# Test-specific clang-tidy overrides.
+# Inherits all checks from the root .clang-tidy via path-based discovery.
+# Disables rules that produce noise in test code.
+
+Checks:
+  - '-*'
+  - '*'
+  # Shared exclusions (keep in sync with root .clang-tidy) ─────────────────
+  - '-bugprone-easily-swappable-parameters'
+  - '-bugprone-exception-escape'
+  - '-bugprone-unchecked-optional-access'
+  - '-llvmlibc-*'
+  - '-cert-*'
+  - '-misc-include-cleaner'
+  - '-modernize-use-trailing-return-type'
+  - '-readability-identifier-length'
+  - '-cppcoreguidelines-avoid-non-const-global-variables'
+  - '-misc-use-internal-linkage'
+  - '-cppcoreguidelines-special-member-functions'
+  - '-hicpp-special-member-functions'
+  - '-hicpp-braces-around-statements'
+  - '-google-readability-braces-around-statements'
+  - '-readability-braces-around-statements'
+  - '-hicpp-named-parameter'
+  - '-readability-named-parameter'
+  - '-altera-*'
+  - '-fuchsia-*'
+  - '-android-*'
+  - '-llvm-header-guard'
+  - '-misc-non-private-member-variables-in-classes'
+  - '-misc-const-correctness'
+  - '-readability-convert-member-functions-to-static'
+  - '-llvm-include-order'
+  - '-hicpp-explicit-conversions'
+  - '-google-explicit-constructor'
+  - '-readability-function-cognitive-complexity'
+  - '-bugprone-empty-catch'
+  - '-cppcoreguidelines-avoid-magic-numbers'
+  - '-readability-magic-numbers'
+  - '-modernize-use-constraints'
+  - '-hicpp-signed-bitwise'
+  - '-cppcoreguidelines-init-variables'
+  - '-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+  - '-google-readability-todo'
+  - '-bugprone-suspicious-stringview-data-usage'
+  - '-concurrency-mt-unsafe'
+  - '-cppcoreguidelines-pro-bounds-constant-array-index'
+  - '-abseil-string-find-str-contains'
+  - '-cppcoreguidelines-pro-type-reinterpret-cast'
+  - '-cppcoreguidelines-avoid-const-or-ref-data-members'
+  - '-performance-unnecessary-value-param'
+  - '-modernize-use-designated-initializers'
+  - '-bugprone-branch-clone'
+  - '-bugprone-implicit-widening-of-multiplication-result'
+  - '-misc-redundant-expression'
+  - '-readability-avoid-nested-conditional-operator'
+  - '-readability-isolate-declaration'
+  # Test-specific relaxations ───────────────────────────────────────────────
+  # TEST_CASE macros generate complex lambdas
+  - '-readability-function-size'
+  # Catch2 assertion macros use global objects
+  - '-cert-err58-cpp'
+  # Test helpers may use implicit conversions for readability
+  - '-google-runtime-int'
+
+# Tests still must compile cleanly, but warnings are not errors.
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
